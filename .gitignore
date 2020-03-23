@@ -1,3 +1,4 @@
 .vscode
 venv
-
+DeepLiDAR/predicted_dense/
+*.pyc
