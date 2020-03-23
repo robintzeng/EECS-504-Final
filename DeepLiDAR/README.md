@@ -31,13 +31,23 @@ You could ignore the folders named 'lidar_m', 'normal_s', 'RGBright' and 'Bounda
 ```
 'gt_fold': the location of your groundtruth folder;
 'left_fold': the location of your RGB image folder;
-'lidar2_raw': the location of your Sparse(LiDAR) depth folder.
+'lidar2_raw': the location of your Sparse (LiDAR) depth folder.
 ```
  
 2. Use the following command to evaluate the trained on your own data.
+
+    (a) read RBG and LiDAR image
+
+    (b) process RGB, LiDAR image, generate mask
+
+    (c) run the testing model and save predicted image (in the folder **predicted_dense**)
+
 ```
-python test.py --loadmodel (your trained model)
+python test.py --loadmodel (your trained model) -n <number of testing images>
+    -n <number of testing images>
+        set the number of images test, -1 if you want to test all of the images in the folder
 ```
+
 ## Citation 
 If you use our code or method in your work, please cite the following:
 ```
