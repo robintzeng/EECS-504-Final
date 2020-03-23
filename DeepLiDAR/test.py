@@ -22,7 +22,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 SAVED_DIR = 'predicted_dense'
 
 parser = argparse.ArgumentParser(description='deepCompletion')
-parser.add_argument('--loadmodel', default='/home/tmt/CV_data/depth_completion_KITTI.tar',
+parser.add_argument('--loadmodel', default='/home/tmt/CV_model/depth_completion_KITTI.tar',
                     help='load model')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
@@ -123,7 +123,9 @@ def main():
     test_image_paths = left_test
     num_testing_image = len(test_image_paths) if args.num_testing_image == -1 else args.num_testing_image
 
-    for idx in tqdm(range(num_testing_image)):
+    running_error = 0
+    pbar = tqdm(range(num_testing_image))
+    for idx in pbar:
         # process RGB image
         imgL_o = skimage.io.imread(test_image_paths[idx]) # (W, H, C) = (352, 1216, 3)
         imgL_o = np.reshape(imgL_o, [imgL_o.shape[0], imgL_o.shape[1],3])
@@ -132,7 +134,7 @@ def main():
  
         # process groundtruth image
         gtruth = skimage.io.imread(gt_test[idx]).astype(np.float32)
-        gtruth = gtruth * 1.0 / 256.0
+        #gtruth = gtruth * 1.0 / 256.0
         
         # process LiDAR image and mask
         sparse = skimage.io.imread(sparse2_test[idx]).astype(np.float32) # Lidar input
@@ -168,6 +170,10 @@ def main():
         img.frombytes(res_buffer, 'raw', "I;16")
         img.save(saved_path)
 
+        running_error += rmse(gtruth, pred, 0.0)
+        mean_error = running_error / (idx + 1)
+        pbar.set_description('Mean error: {:.4f}'.format(mean_error))
+        #pbar.set_postfix(mean_error=mean_error)
  
     print("time: %.8f" % (time_all * 1.0 / 1000.0))
 
