@@ -27,9 +27,13 @@ You could ignore the folders named 'lidar_m', 'normal_s', 'RGBright' and 'Bounda
 ./download/rgb_val_downloader.sh
 ```
 The downloaded rgb files will be stored in the `../data/data_rgb` folder. The overall code, data, and results directory is structured as follows (updated on Oct 1, 2019)
+
 data_depth_annotated: ground truth data (dense depth)
+
 data_depth_velodyne: sparse data (LiDAR)
+
 data_rgb: RGB image
+
 ```
 .
 ├── CV_data
