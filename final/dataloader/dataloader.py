@@ -24,7 +24,7 @@ def get_loader(split='train', batch_size=8, shuffle=True, num_workers=8):
 class depth_dataset(Dataset):
     """Depth dataset."""
 
-    def __init__(self, rgb_image_paths, lidar_image_paths, gt_image_paths, h=256, w=512):
+    def __init__(self, rgb_image_paths, lidar_image_paths, gt_image_paths, h=128, w=256):
         """
         Params:
         h: the height of cropped image
