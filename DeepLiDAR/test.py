@@ -134,7 +134,7 @@ def main():
  
         # process groundtruth image
         gtruth = skimage.io.imread(gt_test[idx]).astype(np.float32)
-        #gtruth = gtruth * 1.0 / 256.0
+        gtruth = gtruth * 1.0 / 256.0
         
         # process LiDAR image and mask
         sparse = skimage.io.imread(sparse2_test[idx]).astype(np.float32) # Lidar input
@@ -162,6 +162,10 @@ def main():
  
         time_all = time_all + testing_time
  
+        running_error += rmse(gtruth, pred, 0.0)*1000
+        mean_error = running_error / (idx + 1)
+        pbar.set_description('Mean error: {:.4f}'.format(mean_error))
+
         # to save image
         pred_show = pred * 256.0
         pred_show = pred_show.astype('uint16')
@@ -169,11 +173,7 @@ def main():
         img = Image.new("I", pred_show.T.shape)
         img.frombytes(res_buffer, 'raw', "I;16")
         img.save(saved_path)
-
-        running_error += rmse(gtruth, pred, 0.0)
-        mean_error = running_error / (idx + 1)
-        pbar.set_description('Mean error: {:.4f}'.format(mean_error))
-        #pbar.set_postfix(mean_error=mean_error)
+        pbar.set_postfix(mean_error=mean_error)
  
     print("time: %.8f" % (time_all * 1.0 / 1000.0))
 

@@ -20,9 +20,9 @@ def cal_loss(dense, c_dense, n_dense, gt, params, normals):
     dense, c_dense, n_dense = dense[valid_mask], c_dense[valid_mask], n_dense[valid_mask]
 
     criterion = nn.MSELoss()
-    loss_d = criterion(dense, gt)
-    loss_c = criterion(c_dense, gt)
-    loss_n = criterion(n_dense, gt)
+    loss_d = torch.sqrt(criterion(dense, gt))
+    loss_c = torch.sqrt(criterion(c_dense, gt))
+    loss_n = torch.sqrt(criterion(n_dense, gt))
     
     return loss_d, loss_c, loss_n
 
@@ -102,8 +102,8 @@ def train(model, optimizer, loader, epoch, device):
 
 
         pbar.set_description('[TRAIN] Epoch: {}; Avg loss: {:.4f}; loss_d: {:.2f}, loss_c: {:.2f}, loss_n: {:.2f}'.\
-            format(epoch + 1, total_loss/total_pic , total_loss_d/total_pic, \
-            total_loss_c/total_pic, total_loss_n/total_pic))
+            format(epoch + 1, 1e3*total_loss/total_pic , 1e3*total_loss_d/total_pic, \
+            1e3*total_loss_c/total_pic, 1e3*total_loss_n/total_pic))
 
 
 
@@ -177,8 +177,8 @@ def val(model, optimizer, loader, epoch, device):
             total_pic += b
 
             pbar.set_description('[VAL] Epoch: {}; Avg loss: {:.4f}; loss_d: {:.2f}, loss_c: {:.2f}, loss_n: {:.2f}'.\
-                format(epoch + 1, total_loss/total_pic , total_loss_d/total_pic, \
-                total_loss_c/total_pic, total_loss_n/total_pic))
+                format(epoch + 1, 1e3*total_loss/total_pic , 1e3*total_loss_d/total_pic, \
+                1e3*total_loss_c/total_pic, 1e3*total_loss_n/total_pic))
     return total_loss /  total_pic
 
 

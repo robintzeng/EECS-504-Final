@@ -18,9 +18,16 @@ args = parser.parse_args()
 
 
 SAVED_DIR = 'predicted_dense'
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+#DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cpu'
 
-def test(model, rgb, lidar, mask, gt):
+
+def rmse(pred, gt):
+    dif = gt[np.where(gt>0)] - pred[np.where(gt>0)]
+    error = np.sqrt(np.mean(dif**2))
+    return error   
+
+def test(model, rgb, lidar, mask):
     model.eval()
 
     # to gpu
@@ -28,7 +35,6 @@ def test(model, rgb, lidar, mask, gt):
     rgb = rgb.to(DEVICE)
     lidar = lidar.to(DEVICE)
     mask = mask.to(DEVICE)
-    gt = gt.to(DEVICE)
 
     criterion = nn.MSELoss()
     with torch.no_grad():
@@ -52,9 +58,11 @@ def test(model, rgb, lidar, mask, gt):
 
         # get predicted dense from weighted sum of 2 path way
         predicted_dense = pred_color_path_dense * color_attn + pred_normal_path_dense * normal_attn # b x 128 x 256
-        loss = criterion(predicted_dense, gt.squeeze(1))
 
-        return torch.squeeze(predicted_dense).cpu(), loss.item()
+
+        #loss = torch.sqrt(criterion(predicted_dense, gt.squeeze(1)))*1000
+
+        return torch.squeeze(predicted_dense).cpu().numpy()
 
 def get_testing_img_paths():
     gt_folder = os.path.join('/home', 'tmt', 'CV_data', 'selection', 'depth_selection', 'val_selection_cropped', 'groundtruth_depth')
@@ -78,11 +86,12 @@ def main():
 
     # load model
     model = deepLidar()
-    state_dict = torch.load(args.model_path)["state_dict"]
+    state_dict = torch.load(args.model_path, map_location=DEVICE)["state_dict"]
     model.load_state_dict(state_dict)
 
     transformer = image_transforms()
     pbar = tqdm(range(num_testing_image))
+    running_error = 0
     for idx in pbar:
         # read image
         rgb = read_rgb(rgb_paths[idx]) # h x w x 3
@@ -92,18 +101,23 @@ def main():
         # transform numpy to tensor and add batch dimension
         rgb = transformer(rgb).unsqueeze(0)
         lidar, mask = transformer(lidar).unsqueeze(0), transformer(mask).unsqueeze(0)
-        gt = transformer(gt).unsqueeze(0)
         
         # saved file path
         fn = os.path.basename(rgb_paths[idx])
         saved_path = os.path.join(SAVED_DIR, fn)
 
         # run model
-        pred, loss = test(model, rgb, lidar, mask, gt)
-        print('loss: {:.2f}'.format(loss))
-        pred = pred.numpy()
+        pred = test(model, rgb, lidar, mask)
         pred = np.where(pred <= 0.0, 0.9, pred)
 
+        gt = gt.reshape(gt.shape[0], gt.shape[1])
+        rmse_loss = rmse(pred, gt)*1000
+
+        running_error += rmse_loss
+        mean_error = running_error / (idx + 1)
+        pbar.set_description('Mean error: {:.4f}'.format(mean_error))
+
+        # save image
         pred_show = pred * 256.0
         pred_show = pred_show.astype('uint16')
         res_buffer = pred_show.tobytes()
