@@ -3,7 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 from skimage import io
 import numpy as np
 import random
-import torchvision.transforms as transforms
+from dataloader.image_reader import *
 
 INTRINSICS = {
     "2011_09_26": [721.5377, 596.5593, 149.854],
@@ -37,19 +37,25 @@ class depth_dataset(Dataset):
         self.h = h
         self.w = w
     
-        self.transforms = transforms.Compose([
-            transforms.ToTensor()
-        ])
+        self.transforms = image_transforms()
 
     def __len__(self):
         return len(self.rgb_image_paths)
 
     def __getitem__(self, idx):
+        """
+        Returns:
+        rgb: 3 x 128 x 256
+        lidar: 1 x 128 x 256
+        mask: 1 x 128 x 256
+        gt: 1 x 128 x 256
+        params: 128 x 256 x 3
+        """
         date = self.rgb_image_paths[idx].split('/')[6][:10] # use to get intrinsic
 
-        rgb = self._read_rgb(self.rgb_image_paths[idx])
-        lidar, mask = self._read_lidar(self.lidar_image_paths[idx])
-        gt = self._read_gt(self.gt_image_paths[idx])
+        rgb = read_rgb(self.rgb_image_paths[idx])
+        lidar, mask = read_lidar(self.lidar_image_paths[idx])
+        gt = read_gt(self.gt_image_paths[idx])
 
         intrinsics = INTRINSICS[date]
         params = np.ones((self.h, self.w, 3)).astype('float32')
@@ -66,45 +72,9 @@ class depth_dataset(Dataset):
         lidar = self._crop(lidar, x_lefttop, y_lefttop, self.h, self.w)
         mask = self._crop(mask, x_lefttop, y_lefttop, self.h, self.w)
         gt = self._crop(gt, x_lefttop, y_lefttop, self.h, self.w)
-
-        return self.transforms(rgb), self.transforms(lidar), self.transforms(mask), self.transforms(gt), params
         
-    def _read_rgb(self, path):
-        """Read rgb image as np array
-
-        Returns:
-        img: numpy array with shape (h, w, c) = (375 x 1242 x 3)
-        # TODO: Maybe return as type of int?
-        """
-        img = io.imread(path)
-        return img.astype('float32')
-    
-    def _read_lidar(self, path):
-        """Read lidar image and generate mask
-
-        Returns:
-        lidar: np array with shape (h, w, 1) = (375 x 1242 x 1)
-        mask: np array with shape (h, w, 1)
-        """
-        lidar = io.imread(path) # with shape (h, w)
-        lidar = lidar * 1.0 / 256.0
-        mask = np.where(lidar > 0.0, 1.0, 0.0) # with shape (h, w)
-
-        lidar = lidar[:, :, np.newaxis].astype('float32')
-        mask = mask[:, :, np.newaxis].astype('float32')
-        return lidar, mask    
-
-    def _read_gt(self, path):
-        """Read gt image.
-
-        Returns:
-        dense: np array with shape (h, w, 1) = (375 x 1242 x 1)
-        """
-        dense = io.imread(path)
-        dense = dense * 1.0 / 256.0
-        dense = dense[:, :, np.newaxis].astype('float32')
-
-        return dense
+        return self.transforms(rgb), self.transforms(lidar), self.transforms(mask), self.transforms(gt), self.transforms(params)
+        
 
     def _crop(self, img, x, y, h, w):
         """Crop image

@@ -58,7 +58,7 @@ class deepCompletionUnit(nn.Module):
             self.predict_normal4 = nn.Conv2d(s_filter[4], 1, kernel_size=3, stride=1, padding=1, bias=True)
             self.predict_normal3 = nn.Conv2d(s_filter[3], 1, kernel_size=3, stride=1, padding=1, bias=True)
             self.predict_normal2 = nn.Conv2d(s_filter[2], 1, kernel_size=3, stride=1, padding=1, bias=True)
-            self.predict_normal1 = nn.Conv2d(s_filter[1], 3, kernel_size=3, stride=1, padding=1, bias=True)
+            self.predict_normal1 = nn.Conv2d(s_filter[1], 2, kernel_size=3, stride=1, padding=1, bias=True)
 
             self.conv_sparse1 = ResBlock(channels_in=2, num_filters=s_filter[0], stride=1)
             self.conv_sparse2 = ResBlock(channels_in=s_filter[0], num_filters=s_filter[1], stride=1)
@@ -199,13 +199,13 @@ class deepLidar(nn.Module):
 
     def forward(self, rgb, lidar, mask):
         surface_normal = self.normal(rgb, lidar, mask)
-        color_path_dense, color_path_mask, cat2C = self.color_path(rgb, lidar, mask)
-        normal_path_dense, cat2N = self.normal_path(surface_normal, lidar, color_path_mask)
+        color_path_dense, confident_mask, cat2C = self.color_path(rgb, lidar, mask)
+        normal_path_dense, cat2N = self.normal_path(surface_normal, lidar, confident_mask)
 
-        color_mask = self.mask_block_C(cat2C)
-        normal_mask = self.mask_block_N(cat2N)
+        color_attn = self.mask_block_C(cat2C)
+        normal_attn = self.mask_block_N(cat2N)
 
-        return color_path_dense, normal_path_dense, color_mask, normal_mask, surface_normal
+        return color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal
 class test_model(nn.Module):
     def __init__(self):
         super(deepLidar, self).__init__()
