@@ -1,5 +1,15 @@
 # DeepLiDAR
 
+## Usage
+### Train and validation
+```
+python3 main.py
+```
+### Test
+```
+python3 test.py
+```
+
 ## Data
 - Download the [KITTI Depth](http://www.cvlibs.net/datasets/kitti/eval_depth.php?benchmark=depth_completion) Dataset from their website. Use the following scripts to extract corresponding RGB images from the raw dataset. 
 ```bash
@@ -56,13 +66,4 @@ data_rgb: RGB image
 |   |   |   ├── 2011_09_26_drive_0001_sync
 |   |   |   |   ├── image_02
 |   |   |   |   ├── image_03
-```
-
-### Train and validation
-```
-python3 main.py
-```
-### Test
-```
-python3 test.py
 ```
