@@ -19,7 +19,7 @@ SAVED_MODEL_PATH = os.path.join('saved_model', args.saved_model_name)
 
 def main():
     train_loader = get_loader('train')
-    val_loader = get_loader('train')
+    val_loader = get_loader('val')
 
     model = deepLidar().to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999))

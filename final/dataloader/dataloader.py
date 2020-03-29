@@ -120,7 +120,7 @@ def get_paths(split='train'):
     assert split in {'train', 'val'}
 
     # list of 2011_09_28_drive_0128_sync ...
-    date_folder_list = os.listdir(os.path.join(rgb_folder, split))
+    date_folder_list = os.listdir(os.path.join(lidar_folder, split))
     date_folder_list.sort()
 
     rgb_image_paths = []
