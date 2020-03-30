@@ -1,3 +1,4 @@
+import skimage
 from skimage import io
 import numpy as np
 import torchvision.transforms as transforms
@@ -42,3 +43,22 @@ def read_gt(path):
     dense = dense[:, :, np.newaxis].astype('float32')
 
     return dense
+
+
+def read_normal(path):
+    """Read surface normal image:
+
+    Returns:
+    """
+    normal = io.imread(path)
+    normal_gray = skimage.color.rgb2gray(normal)
+
+    normal = normal.astype('float32')
+    normal = normal * 1 / 127.5 - np.ones_like(normal) * 1.0
+
+    mask = np.zeros_like(normal).astype('float32')
+    mask[:, :, 0] = np.where(normal_gray > 0, 1.0, 0.0)
+    mask[:, :, 1] = np.where(normal_gray > 0, 1.0, 0.0)
+    mask[:, :, 2] = np.where(normal_gray > 0, 1.0, 0.0)
+
+    return normal, mask
