@@ -11,9 +11,10 @@ parser = argparse.ArgumentParser(description='Depth Completion')
 parser.add_argument('-b', '--batch_size', type=int, default=16, help='batch size')
 parser.add_argument('-e', '--epoch', type=int, default=1000, help='number of epochs')
 parser.add_argument('-m', '--saved_model_name', type=str, default='model', help='saved_model_name')
+parser.add_argument('-cpu', '--using_cpu', action='store_true', help='use cpu')
 args = parser.parse_args()
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cuda' if torch.cuda.is_available() and not args.using_cpu else 'cpu'
 SAVED_MODEL_PATH = os.path.join('saved_model', args.saved_model_name)
 
 
