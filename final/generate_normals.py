@@ -11,11 +11,12 @@ INTRINSICS = {
 
 KITTI_PATH = os.path.join('/home', 'tmt', 'CV_data')
 KITTI_GT_PATH = os.path.join(KITTI_PATH, 'data_depth_annotated')
+KITTI_NORMALS_PATH = os.path.join(KITTI_PATH, 'data_depth_normals')
+
 
 if __name__ == '__main__':
-    kitti_normals_path = os.path.join(KITTI_PATH, 'data_depth_normals')
-    if not os.path.exists(kitti_normals_path):
-        os.mkdir(kitti_normals_path)
+    if not os.path.exists(KITTI_NORMALS_PATH):
+        os.mkdir(KITTI_NORMALS_PATH)
     
     count = 1
     for split in ['train', 'val']:
@@ -34,7 +35,7 @@ if __name__ == '__main__':
 
                 img_fn_list = sorted(os.listdir(gt_path)) # list of png file
                 for img_fn in img_fn_list:
-                    normal_folder = os.path.join(kitti_normals_path, sub_path_to_img_folder) # stored directory
+                    normal_folder = os.path.join(KITTI_NORMALS_PATH, sub_path_to_img_folder) # stored directory
                     if not os.path.exists(normal_folder):
                         os.makedirs(normal_folder)
 
