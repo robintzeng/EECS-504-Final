@@ -1,14 +1,23 @@
 from tqdm import tqdm
 import torch
-import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
 import torch.optim as optim
-from training.utils import *
+from training.utils import get_loss
 
 
 
 def get_optimizer(model, stage):
+    """(1) Get optimizer at different stage.
+       (2) Set require_grad of parameters at different stage
+       (3) Get weights of each loss at different stage
+       For example, at stage N, we only need to train surface normal.
+
+       Returns: 
+       model
+       optimizer
+       loss: list, weight of loss_c, loss_d, loss, loss_normal
+    """
     assert stage in {'D', 'N', 'A'}
 
     if stage == 'N':
@@ -50,9 +59,14 @@ def get_optimizer(model, stage):
 
 
 def train_val(model, loader, epoch, device, stage):
-  
+    """Train and validate the model
+
+    Returns: training and validation loss
+    """
+
     model, optimizer, loss_weights = get_optimizer(model, stage)
     train_loss, val_loss = [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]
+
     for phase in ['train', 'val']:
         total_loss, total_loss_d, total_loss_c, total_loss_n, total_loss_normal = 0, 0, 0, 0, 0
         total_pic = 0 # used to calculate average loss
@@ -124,7 +138,9 @@ def train_val(model, loader, epoch, device, stage):
                 total_loss_c/total_pic, total_loss_n/total_pic, total_loss_normal/total_pic))
 
     return train_loss, val_loss
+
 class EarlyStop():
+    """Early stop training if validation loss didn't improve for a long time"""
     def __init__(self, patience, mode = 'min'):
         self.patience = patience
         self.mode = mode

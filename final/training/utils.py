@@ -1,23 +1,56 @@
-from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
-import torch.optim as optim
-from training.utils import *
 
+
+def get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn):
+    """Use raw model output to generate dense of color pathway, normal path way, and integrated result
+
+    Returns: predicted_dense, pred_color_path_dense, pred_normal_path_dense
+    """
+    # get predicted dense depth from 2 pathways
+    pred_color_path_dense = color_path_dense[:, 0, :, :] # b x 128 x 256
+    pred_normal_path_dense = normal_path_dense[:, 0, :, :]
+
+    # get attention map of 2 pathways
+    color_attn = torch.squeeze(color_attn) # b x 128 x 256
+    normal_attn = torch.squeeze(normal_attn) # b x 128 x 256
+
+    # softmax 2 attention map
+    pred_attn = torch.zeros_like(color_path_dense) # b x 2 x 128 x 256
+    pred_attn[:, 0, :, :] = color_attn
+    pred_attn[:, 1, :, :] = normal_attn
+    pred_attn = F.softmax(pred_attn, dim=1) # b x 2 x 128 x 256
+
+    color_attn, normal_attn = pred_attn[:, 0, :, :], pred_attn[:, 1, :, :]
+
+    # get predicted dense from weighted sum of 2 path way
+    predicted_dense = pred_color_path_dense * color_attn + pred_normal_path_dense * normal_attn # b x 128 x 256
+
+    predicted_dense = predicted_dense.unsqueeze(1)
+    pred_color_path_dense = pred_color_path_dense.unsqueeze(1) 
+    pred_normal_path_dense = pred_normal_path_dense.unsqueeze(1)
+
+    return predicted_dense, pred_color_path_dense, pred_normal_path_dense
 
 def get_depth_and_normal(model, rgb, lidar, mask):
+    """Given model and input of model, get dense depth and surface normal
+
+    Returns:
+    predicted_dense: b x c x h x w
+    pred_surface_normal: b x c x h x w
+    """
     with torch.no_grad():
         color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, 'A')
-        predicted_dense, pred_color_path_dense, pred_normal_path_dense = \
-                                get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn)
+        predicted_dense, _, _ = get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn)
     return predicted_dense, pred_surface_normal
 
 
 
 
 def normal_to_0_1(img):
+    """Normalize image to [0, 1], used for tensorboard visualization."""
     return (img - torch.min(img)) / (torch.max(img) - torch.min(img))
 
 
@@ -68,31 +101,7 @@ def get_depth_loss(dense, c_dense, n_dense, gt):
     return loss_d, loss_c, loss_n
 
 
-def get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn):
-    # get predicted dense depth from 2 pathways
-    pred_color_path_dense = color_path_dense[:, 0, :, :] # b x 128 x 256
-    pred_normal_path_dense = normal_path_dense[:, 0, :, :]
 
-    # get attention map of 2 pathways
-    color_attn = torch.squeeze(color_attn) # b x 128 x 256
-    normal_attn = torch.squeeze(normal_attn) # b x 128 x 256
-
-    # softmax 2 attention map
-    pred_attn = torch.zeros_like(color_path_dense) # b x 2 x 128 x 256
-    pred_attn[:, 0, :, :] = color_attn
-    pred_attn[:, 1, :, :] = normal_attn
-    pred_attn = F.softmax(pred_attn, dim=1) # b x 2 x 128 x 256
-
-    color_attn, normal_attn = pred_attn[:, 0, :, :], pred_attn[:, 1, :, :]
-
-    # get predicted dense from weighted sum of 2 path way
-    predicted_dense = pred_color_path_dense * color_attn + pred_normal_path_dense * normal_attn # b x 128 x 256
-
-    predicted_dense = predicted_dense.unsqueeze(1)
-    pred_color_path_dense = pred_color_path_dense.unsqueeze(1) 
-    pred_normal_path_dense = pred_normal_path_dense.unsqueeze(1)
-
-    return predicted_dense, pred_color_path_dense, pred_normal_path_dense
 
 def get_loss(color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal, stage, gt_depth, params, gt_surface_normal, gt_normal_mask):
     assert stage in {'D', 'N', 'A'}

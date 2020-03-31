@@ -9,6 +9,7 @@ from dataloader.dataloader import get_loader
 from model.DeepLidar import deepLidar
 from tb_writer import TensorboardWriter
 from training.train import EarlyStop, train_val
+from training.utils import get_depth_and_normal
 
 parser = argparse.ArgumentParser(description='Depth Completion')
 parser.add_argument('-b', '--batch_size', type=int, default=16, help='batch size')
@@ -67,8 +68,8 @@ def main():
         print('Loss of loaded model: {:.4f}'.format(dic['val_loss']))
 
     main_train(model, 'N')
-    #main_train(model, 'D')
-    #main_train(model, 'A')
+    main_train(model, 'D')
+    main_train(model, 'A')
 
 
 if __name__ == '__main__':
