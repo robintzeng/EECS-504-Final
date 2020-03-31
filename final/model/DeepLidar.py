@@ -197,8 +197,11 @@ class deepLidar(nn.Module):
         self.mask_block_C = maskBlock()
         self.mask_block_N = maskBlock()
 
-    def forward(self, rgb, lidar, mask):
+    def forward(self, rgb, lidar, mask, stage):
         surface_normal = self.normal(rgb, lidar, mask)
+        if stage == 'N':
+            return None, None, None, None, surface_normal
+
         color_path_dense, confident_mask, cat2C = self.color_path(rgb, lidar, mask)
         normal_path_dense, cat2N = self.normal_path(surface_normal, lidar, confident_mask)
 
@@ -206,10 +209,4 @@ class deepLidar(nn.Module):
         normal_attn = self.mask_block_N(cat2N)
 
         return color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal
-class test_model(nn.Module):
-    def __init__(self):
-        super(deepLidar, self).__init__()
-        
 
-    def forward(self, rgb, lidar, mask):
-        sparse = torch.cat((lidar, mask), 1)

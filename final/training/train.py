@@ -3,184 +3,116 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
-
-
-def cal_loss(dense, c_dense, n_dense, gt, params, normals):
-    """
-    dense: b x 1 x 128 x 256
-    c_dense: b x 1 x 128 x 256
-    n_dense: b x 1 x 128 x 256
-    gt: b x 1 x 128 x 256
-    params: b x 3 x 128 x 256
-    normals: b x 128 x 256 x 3
-    """
-    valid_mask = (gt > 0.0).detach() # b x 1 x 128 x 256
-
-    gt = gt[valid_mask]
-    dense, c_dense, n_dense = dense[valid_mask], c_dense[valid_mask], n_dense[valid_mask]
-
-    criterion = nn.MSELoss()
-    loss_d = torch.sqrt(criterion(dense, gt))
-    loss_c = torch.sqrt(criterion(c_dense, gt))
-    loss_n = torch.sqrt(criterion(n_dense, gt))
-    
-    return loss_d, loss_c, loss_n
+import torch.optim as optim
+from training.utils import *
 
 
 
-def train(model, optimizer, loader, epoch, device):
-    model.train()
-    pbar = tqdm(iter(loader))
-    total_loss, total_loss_d, total_loss_c, total_loss_n = 0, 0, 0, 0
-    total_pic = 0
-    for num_batch, (rgb, lidar, mask, gt, params) in enumerate(pbar):
-        """
-        rgb: b x 3 x 128 x 256
-        lidar: b x 1 x 128 x 256
-        mask: b x 1 x 128 x 256
-        gt: b x 1 x 128 x 256
-        params: b x 128 x 256 x 3
-        """
-        rgb, lidar, mask = rgb.to(device), lidar.to(device), mask.to(device)
-        gt, params = gt.to(device), params.to(device)
+def get_optimizer(model, stage):
+    assert stage in {'D', 'N', 'A'}
 
-        color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal = model(rgb, lidar, mask)
-        # color_path_dense: b x 2 x 128 x 256
-        # normal_path_dense: b x 2 x 128 x 256
-        # color_mask: b x 1 x 128 x 256
-        # normal_mask: b x 1 x 128 x 256
-        # surface_normal: b x 3 x 128 x 256
+    if stage == 'N':
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.normal.parameters():
+            param.requires_grad = True
 
-        # get predicted dense depth from 2 pathways
-        pred_color_path_dense = color_path_dense[:, 0, :, :] # b x 128 x 256
-        pred_normal_path_dense = normal_path_dense[:, 0, :, :]
+        optimizer = optim.Adam(model.normal.parameters(), lr=0.001, betas=(0.9, 0.999))
+        loss_weights = [0, 0, 0, 1]
 
-        # get attention map of 2 pathways
-        color_attn = torch.squeeze(color_attn) # b x 128 x 256
-        normal_attn = torch.squeeze(normal_attn) # b x 128 x 256
+    elif stage == 'D':
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.color_path.parameters():
+            param.requires_grad = True
+        for param in model.normal_path.parameters():
+            param.requires_grad = True
 
-        # softmax 2 attention map
-        pred_attn = torch.zeros_like(color_path_dense) # b x 2 x 128 x 256
-        pred_attn[:, 0, :, :] = color_attn
-        pred_attn[:, 1, :, :] = normal_attn
-        pred_attn = F.softmax(pred_attn, dim=1) # b x 2 x 128 x 256
+        optimizer = optim.Adam([{'params':model.color_path.parameters()},
+                                {'params':model.normal_path.parameters()}], lr=0.001, betas=(0.9, 0.999))
+        loss_weights = [0.3, 0.3, 0.0, 0.1]
 
-        color_attn, normal_attn = pred_attn[:, 0, :, :], pred_attn[:, 1, :, :]
+    else:
+        for param in model.color_path.parameters():
+            param.requires_grad = True  
+        for param in model.normal.parameters():
+            param.requires_grad = False  
 
-        # get predicted dense from weighted sum of 2 path way
-        predicted_dense = pred_color_path_dense * color_attn + pred_normal_path_dense * normal_attn # b x 128 x 256
+        optimizer = optim.Adam([{'params':model.color_path.parameters()},
+                                {'params':model.normal_path.parameters()},
+                                {'params':model.mask_block_C.parameters()},
+                                {'params':model.mask_block_N.parameters()}], lr=0.001, betas=(0.9, 0.999))
 
-        predicted_dense = predicted_dense.unsqueeze(1)
-        pred_color_path_dense = pred_color_path_dense.unsqueeze(1) 
-        pred_normal_path_dense = pred_normal_path_dense.unsqueeze(1)
+        loss_weights = [0.3, 0.3, 0.5, 0.1]
 
-        # normalize surface normal
-        b, c, h, w = surface_normal.size()
-        surface_normal = surface_normal.permute(0, 2, 3, 1).contiguous().view(-1, c)
-        surface_normal = F.normalize(surface_normal, p=2, dim=1) # perform Lp normalization over specific dimension
-        surface_normal = surface_normal.view(b, h, w, c)
-
-        # TODO
-        output_normal = torch.zeros_like(surface_normal)
-        output_normal[:, :, :, 0] = -surface_normal[:, :, :, 0]
-        output_normal[:, :, :, 1] = -surface_normal[:, :, :, 2]
-        output_normal[:, :, :, 2] = -surface_normal[:, :, :, 1]
-
-        loss_d, loss_c, loss_n = cal_loss(predicted_dense, pred_color_path_dense, pred_normal_path_dense, gt, params, output_normal)
-        loss = 0.5 * loss_d + 0.25 * loss_c + 0.25 * loss_n
-
-        total_loss += loss.item()
-        total_loss_d += loss_d.item()
-        total_loss_c += loss_c.item()
-        total_loss_n += loss_n.item()
-
-        total_pic += b
-
-        loss.backward()
-        optimizer.step()
-        optimizer.zero_grad()
-
-
-        pbar.set_description('[TRAIN] Epoch: {}; Avg loss: {:.4f}; loss_d: {:.2f}, loss_c: {:.2f}, loss_n: {:.2f}'.\
-            format(epoch + 1, 1e3*total_loss/total_pic , 1e3*total_loss_d/total_pic, \
-            1e3*total_loss_c/total_pic, 1e3*total_loss_n/total_pic))
+    return model, optimizer, loss_weights
 
 
 
-def val(model, optimizer, loader, epoch, device):
-    pbar = tqdm(iter(loader))
-    model.eval()
-    total_loss, total_loss_d, total_loss_c, total_loss_n = 0, 0, 0, 0
-    total_pic = 0
-    for num_batch, (rgb, lidar, mask, gt, params) in enumerate(pbar):
-        """
-        rgb: b x 3 x 128 x 256
-        lidar: b x 1 x 128 x 256
-        mask: b x 1 x 128 x 256
-        gt: b x 1 x 128 x 256
-        params: b x 128 x 256 x 3
-        """
-        with torch.no_grad():
+def train_val(model, loader, epoch, device, stage):
+  
+    model, optimizer, loss_weights = get_optimizer(model, stage)
+
+    for phase in ['train', 'val']:
+        total_loss, total_loss_d, total_loss_c, total_loss_n, total_loss_normal = 0, 0, 0, 0, 0
+        total_pic = 0 # used to calculate average loss
+        data_loader = loader[phase]
+        pbar = tqdm(iter(data_loader))
+
+        if phase == 'train':
+            model.train()
+        else:
+            model.eval()
+
+        for num_batch, (rgb, lidar, mask, gt_depth, params, gt_surface_normal, gt_normal_mask) in enumerate(pbar):
+            """
+            rgb: b x 3 x 128 x 256
+            lidar: b x 1 x 128 x 256
+            mask: b x 1 x 128 x 256
+            gt: b x 1 x 128 x 256
+            params: b x 128 x 256 x 3
+            """
             rgb, lidar, mask = rgb.to(device), lidar.to(device), mask.to(device)
-            gt, params = gt.to(device), params.to(device)
+            gt_depth, params = gt_depth.to(device), params.to(device)
+            gt_surface_normal, gt_normal_mask = gt_surface_normal.to(device), gt_normal_mask.to(device)
 
-            color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal = model(rgb, lidar, mask)
+            if phase == 'train':
+                color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, stage)
+            else:
+                with torch.no_grad():
+                    color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, stage)
             # color_path_dense: b x 2 x 128 x 256
             # normal_path_dense: b x 2 x 128 x 256
             # color_mask: b x 1 x 128 x 256
             # normal_mask: b x 1 x 128 x 256
             # surface_normal: b x 3 x 128 x 256
 
-            # get predicted dense depth from 2 pathways
-            pred_color_path_dense = color_path_dense[:, 0, :, :] # b x 128 x 256
-            pred_normal_path_dense = normal_path_dense[:, 0, :, :]
+            loss_c, loss_n, loss_d, loss_normal = get_loss(color_path_dense, normal_path_dense, color_attn,\
+                                                            normal_attn, pred_surface_normal, stage,\
+                                                            gt_depth, params, gt_surface_normal, gt_normal_mask)
 
-            # get attention map of 2 pathways
-            color_attn = torch.squeeze(color_attn) # b x 128 x 256
-            normal_attn = torch.squeeze(normal_attn) # b x 128 x 256
-
-            # softmax 2 attention map
-            pred_attn = torch.zeros_like(color_path_dense) # b x 2 x 128 x 256
-            pred_attn[:, 0, :, :] = color_attn
-            pred_attn[:, 1, :, :] = normal_attn
-            pred_attn = F.softmax(pred_attn, dim=1) # b x 2 x 128 x 256
-
-            color_attn, normal_attn = pred_attn[:, 0, :, :], pred_attn[:, 1, :, :]
-
-            # get predicted dense from weighted sum of 2 path way
-            predicted_dense = pred_color_path_dense * color_attn + pred_normal_path_dense * normal_attn # b x 128 x 256
-
-            predicted_dense = predicted_dense.unsqueeze(1)
-            pred_color_path_dense = pred_color_path_dense.unsqueeze(1) 
-            pred_normal_path_dense = pred_normal_path_dense.unsqueeze(1)
-
-            # normalize surface normal
-            b, c, h, w = surface_normal.size()
-            surface_normal = surface_normal.permute(0, 2, 3, 1).contiguous().view(-1, c)
-            surface_normal = F.normalize(surface_normal, p=2, dim=1) # perform Lp normalization over specific dimension
-            surface_normal = surface_normal.view(b, h, w, c)
-
-            # TODO
-            output_normal = torch.zeros_like(surface_normal)
-            output_normal[:, :, :, 0] = -surface_normal[:, :, :, 0]
-            output_normal[:, :, :, 1] = -surface_normal[:, :, :, 2]
-            output_normal[:, :, :, 2] = -surface_normal[:, :, :, 1]
-
-            loss_d, loss_c, loss_n = cal_loss(predicted_dense, pred_color_path_dense, pred_normal_path_dense, gt, params, output_normal)
-            loss = 0.5 * loss_d + 0.25 * loss_c + 0.25 * loss_n
+            loss = loss_weights[0] * loss_c + loss_weights[1] * loss_n + loss_weights[2] * loss_d + loss_weights[3] * loss_normal
 
             total_loss += loss.item()
             total_loss_d += loss_d.item()
             total_loss_c += loss_c.item()
             total_loss_n += loss_n.item()
+            total_loss_n += loss_n.item()
+            total_loss_normal += loss_normal.item()
 
-            total_pic += b
+            total_pic += rgb.size(0)
 
-            pbar.set_description('[VAL] Epoch: {}; Avg loss: {:.4f}; loss_d: {:.2f}, loss_c: {:.2f}, loss_n: {:.2f}'.\
-                format(epoch + 1, 1e3*total_loss/total_pic , 1e3*total_loss_d/total_pic, \
-                1e3*total_loss_c/total_pic, 1e3*total_loss_n/total_pic))
-    return total_loss /  total_pic
+            if phase == 'train':
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
 
+
+            pbar.set_description('[{}] Epoch: {}; loss: {:.4f}; loss_d: {:.4f}, loss_c: {:.4f}, loss_n: {:.4f}, loss_normal: {:.4f}'.\
+                format(phase.upper(), epoch + 1, total_loss/total_pic , total_loss_d/total_pic, \
+                total_loss_c/total_pic, total_loss_n/total_pic, total_loss_normal/total_pic))
+
+        return total_loss /  total_pic
 
 class EarlyStop():
     def __init__(self, saved_model_path, patience, mode = 'min'):
@@ -198,8 +130,9 @@ class EarlyStop():
             self.best = loss
             self.cur_patience = 0
 
-            torch.save({'val_loss': loss, 'state_dict': model.state_dict(), 'epoch': epoch}, self.saved_model_path)
-            print('SAVE MODEL to {}'.format(self.saved_model_path))
+            saved_model_path = self.saved_model_path + 'E{}'.format(epoch) + '.tar'
+            torch.save({'val_loss': loss, 'state_dict': model.state_dict(), 'epoch': epoch}, saved_model_path)
+            print('SAVE MODEL to {}'.format(saved_model_path))
         else:
             self.cur_patience += 1
             if self.patience == self.cur_patience:
