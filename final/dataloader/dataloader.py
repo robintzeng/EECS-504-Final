@@ -13,10 +13,10 @@ INTRINSICS = {
     "2011_10_03": (718.8560, 607.1928, 185.2157),
 }
 
-def get_loader(split='train', batch_size=8, shuffle=True, num_workers=8):
+def get_loader(split='train', batch_size=8, shuffle=True, num_workers=8, num_data=None, crop=True):
     """Get torch dataloader."""
     rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths = get_paths(split)
-    dataset = depth_dataset(rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths)
+    dataset = depth_dataset(rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths, num_data, crop=crop)
     loader = DataLoader(dataset, batch_size=batch_size)
 
     return loader
@@ -24,19 +24,29 @@ def get_loader(split='train', batch_size=8, shuffle=True, num_workers=8):
 class depth_dataset(Dataset):
     """Depth dataset."""
 
-    def __init__(self, rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths=None, h=128, w=256):
+    def __init__(self, rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths=None, num_data=None, h=128, w=256, crop=True):
         """
         Params:
         h: the height of cropped image
         w: the width of cropped image
         """
-        self.rgb_image_paths = rgb_image_paths
-        self.lidar_image_paths = lidar_image_paths
-        self.gt_image_paths = gt_image_paths
+        self.rgb_image_paths = np.array(rgb_image_paths)
+        self.lidar_image_paths = np.array(lidar_image_paths)
+        self.gt_image_paths = np.array(gt_image_paths)
         
         if normal_image_paths:
-            self.normal_image_paths = normal_image_paths
+            self.normal_image_paths = np.array(normal_image_paths)
 
+        if num_data:
+            np.random.seed(0)
+            indices = np.random.choice(len(rgb_image_paths), size=num_data, replace=False)
+            self.rgb_image_paths = self.rgb_image_paths[indices]
+            self.lidar_image_paths = self.lidar_image_paths[indices]
+            self.gt_image_paths = self.gt_image_paths[indices]
+            if normal_image_paths:
+                self.normal_image_paths = self.normal_image_paths[indices]
+            
+        self.crop_or_not = crop
         self.h = h
         self.w = w
     
@@ -68,26 +78,26 @@ class depth_dataset(Dataset):
         rgb = read_rgb(self.rgb_image_paths[idx])
         lidar, mask = read_lidar(self.lidar_image_paths[idx])
         gt = read_gt(self.gt_image_paths[idx])
+        surface_normal, mask_normal = read_normal(self.normal_image_paths[idx])
 
         # random crop images
         height, width, channel = rgb.shape
+
         x_lefttop = random.randint(0, height - self.h)
         y_lefttop = random.randint(0, width - self.w)
 
-        rgb = self._crop(rgb, x_lefttop, y_lefttop, self.h, self.w)
-        lidar = self._crop(lidar, x_lefttop, y_lefttop, self.h, self.w)
-        mask = self._crop(mask, x_lefttop, y_lefttop, self.h, self.w)
-        gt = self._crop(gt, x_lefttop, y_lefttop, self.h, self.w)
-
-        # if using surface normal data
-        if self.normal_image_paths:
-            surface_normal, mask_normal = read_normal(self.normal_image_paths[idx])
+        if self.crop_or_not:
+            rgb = self._crop(rgb, x_lefttop, y_lefttop, self.h, self.w)
+            lidar = self._crop(lidar, x_lefttop, y_lefttop, self.h, self.w)
+            mask = self._crop(mask, x_lefttop, y_lefttop, self.h, self.w)
+            gt = self._crop(gt, x_lefttop, y_lefttop, self.h, self.w)
             surface_normal = self._crop(surface_normal, x_lefttop, y_lefttop, self.h, self.w)
             mask_normal = self._crop(mask_normal, x_lefttop, y_lefttop, self.h, self.w)
-            return self.transforms(rgb), self.transforms(lidar), self.transforms(mask), self.transforms(gt), self.transforms(params),\
-                self.transforms(surface_normal), self.transforms(mask_normal)
+
+        return self.transforms(rgb), self.transforms(lidar), self.transforms(mask), self.transforms(gt), self.transforms(params),\
+            self.transforms(surface_normal), self.transforms(mask_normal)
         
-        return self.transforms(rgb), self.transforms(lidar), self.transforms(mask), self.transforms(gt), self.transforms(params)
+        #return self.transforms(rgb), self.transforms(lidar), self.transforms(mask), self.transforms(gt), self.transforms(params)
         
 
     def _crop(self, img, x, y, h, w):

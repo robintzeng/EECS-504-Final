@@ -7,19 +7,23 @@ from dataloader.image_reader import *
 from model.DeepLidar import deepLidar
 import torch.nn.functional as F
 from PIL import Image
+from training.utils import *
+
 
 parser = argparse.ArgumentParser(description='Depth Completion')
-parser.add_argument('--model_path', default='/home/tmt/CV_final/cys/EECS-545-Final/final/saved_model/model.tar',
+parser.add_argument('-m', '--model_path', default='/home/tmt/CV_final/cys/EECS-545-Final/final/saved_model/model.tar',
                     help='load model')
 parser.add_argument('-n', '--num_testing_image', type=int, default=10, 
                     help='The number of testing image to be runned')
+parser.add_argument('-cpu', '--using_cpu', action='store_true', help='use cpu')
+
 args = parser.parse_args()
 
 
 
 SAVED_DIR = 'predicted_dense'
-#DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-DEVICE = 'cpu'
+DEVICE = 'cuda' if torch.cuda.is_available() and not args.using_cpu else 'cpu'
+
 
 
 def rmse(pred, gt):
@@ -30,38 +34,18 @@ def rmse(pred, gt):
 def test(model, rgb, lidar, mask):
     model.eval()
 
-    # to gpu
     model = model.to(DEVICE)
     rgb = rgb.to(DEVICE)
     lidar = lidar.to(DEVICE)
     mask = mask.to(DEVICE)
 
-    criterion = nn.MSELoss()
     with torch.no_grad():
-        color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal = model(rgb, lidar, mask)
+        color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal = model(rgb, lidar, mask, stage='A')
+
+        predicted_dense, pred_color_path_dense, pred_normal_path_dense = \
+                            get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn)
+ 
         
-        # get predicted dense depth from 2 pathways
-        pred_color_path_dense = color_path_dense[:, 0, :, :] # b x 128 x 256
-        pred_normal_path_dense = normal_path_dense[:, 0, :, :]
-
-        # get attention map of 2 pathways
-        color_attn = torch.squeeze(color_attn) # b x 128 x 256
-        normal_attn = torch.squeeze(normal_attn) # b x 128 x 256
-
-        # softmax 2 attention map
-        pred_attn = torch.zeros_like(color_path_dense) # b x 2 x 128 x 256
-        pred_attn[:, 0, :, :] = color_attn
-        pred_attn[:, 1, :, :] = normal_attn
-        pred_attn = F.softmax(pred_attn, dim=1) # b x 2 x 128 x 256
-
-        color_attn, normal_attn = pred_attn[:, 0, :, :], pred_attn[:, 1, :, :]
-
-        # get predicted dense from weighted sum of 2 path way
-        predicted_dense = pred_color_path_dense * color_attn + pred_normal_path_dense * normal_attn # b x 128 x 256
-
-
-        #loss = torch.sqrt(criterion(predicted_dense, gt.squeeze(1)))*1000
-
         return torch.squeeze(predicted_dense).cpu().numpy()
 
 def get_testing_img_paths():
@@ -82,6 +66,8 @@ def get_testing_img_paths():
 def main():
     # get image paths
     rgb_paths, lidar_paths, gt_paths = get_testing_img_paths()
+
+    # set the number of testing images
     num_testing_image = len(rgb_paths) if args.num_testing_image == -1 else args.num_testing_image
 
     # load model
@@ -92,6 +78,7 @@ def main():
     transformer = image_transforms()
     pbar = tqdm(range(num_testing_image))
     running_error = 0
+
     for idx in pbar:
         # read image
         rgb = read_rgb(rgb_paths[idx]) # h x w x 3
@@ -124,5 +111,7 @@ def main():
         img = Image.new("I", pred_show.T.shape)
         img.frombytes(res_buffer, 'raw', "I;16")
         img.save(saved_path)
+
+
 if __name__ == '__main__':
     main()

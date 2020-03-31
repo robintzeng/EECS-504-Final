@@ -1,6 +1,6 @@
 import os 
 from surface_normal import normals_from_depth
-
+from skimage import io
 INTRINSICS = {
     "2011_09_26": (721.5377, 609.5593, 172.8540),
     "2011_09_28": (707.0493, 604.0814, 180.5066),
@@ -48,6 +48,7 @@ if __name__ == '__main__':
                                            window_size=15,
                                            max_rel_depth_diff=0.1
                                         )
+
                     print("processed {} images".format(count))
                     count += 1
         

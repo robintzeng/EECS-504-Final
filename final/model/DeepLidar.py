@@ -126,6 +126,8 @@ class deepCompletionUnit(nn.Module):
 
 
     def forward(self, rgb, lidar, mask):
+        b, c, w, h = rgb.size()
+
         sparse_input = torch.cat((lidar, mask), 1)
         s1 = self.conv_sparse1(sparse_input) # 256 x 512
         s2 = self.conv_sparse2(s1) # 128 x 256
@@ -155,7 +157,7 @@ class deepCompletionUnit(nn.Module):
         dense = self.predict_normal1(cat2)
 
         if self.mode == 'I':
-            dense = F.interpolate(dense, (dense.size(2)*2, dense.size(3)*2), mode='bilinear', align_corners=True)
+            dense = F.interpolate(dense, (w, h), mode='bilinear', align_corners=True)
             return dense
         
         if self.mode == 'C':

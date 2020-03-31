@@ -5,6 +5,22 @@ import torch.nn as nn
 import numpy as np
 import torch.optim as optim
 from training.utils import *
+
+
+def get_depth_and_normal(model, rgb, lidar, mask):
+    with torch.no_grad():
+        color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, 'A')
+        predicted_dense, pred_color_path_dense, pred_normal_path_dense = \
+                                get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn)
+    return predicted_dense, pred_surface_normal
+
+
+
+
+def normal_to_0_1(img):
+    return (img - torch.min(img)) / (torch.max(img) - torch.min(img))
+
+
 def normal_loss(pred_normal, gt_normal, gt_normal_mask):
     """Calculate loss of surface normal (in the stage N)
 

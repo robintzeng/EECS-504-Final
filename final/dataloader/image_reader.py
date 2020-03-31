@@ -50,9 +50,9 @@ def read_normal(path):
 
     Returns:
     """
+    
     normal = io.imread(path)
     normal_gray = skimage.color.rgb2gray(normal)
-
     normal = normal.astype('float32')
     normal = normal * 1 / 127.5 - np.ones_like(normal) * 1.0
 
