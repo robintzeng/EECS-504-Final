@@ -20,7 +20,8 @@ pip3 install -r requirements.txt
 ```
 
 ## Data Preparation
-- Download the [KITTI Depth](http://www.cvlibs.net/datasets/kitti/eval_depth.php?benchmark=depth_completion) Dataset from their website. Use the following scripts to extract corresponding RGB images from the raw dataset. 
+- Download the [KITTI Depth](http://www.cvlibs.net/datasets/kitti/eval_depth.php?benchmark=depth_completion) Dataset from their website.
+- Use the following scripts to extract corresponding RGB images from the raw dataset. 
 ```bash
 ./download/rgb_train_downloader.sh
 ./download/rgb_val_downloader.sh
