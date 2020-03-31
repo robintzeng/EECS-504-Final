@@ -1,4 +1,16 @@
-# DeepLiDAR
+# [DeepLiDAR](http://openaccess.thecvf.com/content_CVPR_2019/papers/Qiu_DeepLiDAR_Deep_Surface_Normal_Guided_Depth_Prediction_for_Outdoor_Scene_CVPR_2019_paper.pdf)
+This repository is implementation for [DeepLiDAR: Deep Surface Normal Guided Depth Prediction for Outdoor Scene from Sparse LiDAR Data and Single Color Image](http://openaccess.thecvf.com/content_CVPR_2019/papers/Qiu_DeepLiDAR_Deep_Surface_Normal_Guided_Depth_Prediction_for_Outdoor_Scene_CVPR_2019_paper.pdf). There are some difference between author's repo and mine.
+
+(1) Rewrite the code referenced from [author's repo](https://github.com/JiaxiongQ/DeepLiDAR) with python3.6 and newest version of pytorch. 
+
+(2) Clarify the structure of KITTI depth data
+
+(3) Make it easier to reproduce my result (**not author's result**, because original model is too large to put onto single GPU and use lots of time to train. So, I reduced the parameters of model and used less data to train. Also, there might be slight difference between author's implementation and mine)
+
+(4) I add comments on the code and make it more flexible and readable. 
+
+(5) I add tensorboard visualization for every epoch
+
 
 ## Data
 - Download the [KITTI Depth](http://www.cvlibs.net/datasets/kitti/eval_depth.php?benchmark=depth_completion) Dataset from their website. Use the following scripts to extract corresponding RGB images from the raw dataset. 
@@ -6,7 +18,7 @@
 ./download/rgb_train_downloader.sh
 ./download/rgb_val_downloader.sh
 ```
-The overall code, data, and results directory is structured as follows (updated on Oct 1, 2019)
+The overall code, data, and results directory is structured as follows
 
 data_depth_annotated: ground truth data (dense depth)
 
@@ -72,5 +84,7 @@ python3 main.py
 ```
 python3 test.py
 ```
+
+## Tensorboard Visualization
 
 
