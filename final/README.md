@@ -30,7 +30,7 @@ pip3 install -r requirements.txt
   * data_depth_annotated: ground truth data (dense depth)
   * data_depth_velodyne: sparse data (LiDAR)
   * data_rgb: RGB image
-  * data_depth_annotated: generated surface normal from **data_depth_annotated** by using **generate_normals.py**
+  * data_depth_annotated: Used to train surface normals, and generated from **data_depth_annotated** by using **generate_normals.py**
 
 ```
 .
