@@ -5,7 +5,7 @@ This repository is the implementation for [DeepLiDAR: Deep Surface Normal Guided
 
 (2) Clarify the structure of KITTI depth completion data
 
-(3) Make it easier to reproduce my result (**not author's result**, because original model is too large to put onto single GPU and use lots of time to train. So, I reduced the parameters of model and used less data to train. Also, there might be slight difference between author's implementation and mine)
+(3) Make it easier to reproduce my result (**not author's result**, because original model is too large to put onto single GPU and use lots of time to train. So, I **reduced the parameters** of model and **used less data** to train. Also, there might be **slight difference** between author's implementation and mine)
 
 (4) I add comments on the code and make it more flexible and readable. 
 
