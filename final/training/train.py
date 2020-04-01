@@ -157,7 +157,7 @@ class EarlyStop():
 
             torch.save({'val_loss': loss, \
                         'state_dict': model.state_dict(), \
-                        'epoch': epoch}, saved_model_path)
+                        'epoch': epoch}, saved_model_path+'.tar')
             print('SAVE MODEL to {}'.format(saved_model_path))
         else:
             self.cur_patience += 1

@@ -41,6 +41,7 @@ def get_depth_and_normal(model, rgb, lidar, mask):
     predicted_dense: b x c x h x w
     pred_surface_normal: b x c x h x w
     """
+    model.eval()
     with torch.no_grad():
         color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, 'A')
         predicted_dense, _, _ = get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn)
