@@ -1,4 +1,4 @@
-# [DeepLiDAR](http://openaccess.thecvf.com/content_CVPR_2019/papers/Qiu_DeepLiDAR_Deep_Surface_Normal_Guided_Depth_Prediction_for_Outdoor_Scene_CVPR_2019_paper.pdf)
+# DeepLiDAR (Python3, Pytorch 1.4.0)
 This repository is the implementation for [DeepLiDAR: Deep Surface Normal Guided Depth Prediction for Outdoor Scene from Sparse LiDAR Data and Single Color Image](http://openaccess.thecvf.com/content_CVPR_2019/papers/Qiu_DeepLiDAR_Deep_Surface_Normal_Guided_Depth_Prediction_for_Outdoor_Scene_CVPR_2019_paper.pdf). There are some difference between author's repo and mine.
 
 (1) Rewrite the code referenced from [author's repo](https://github.com/JiaxiongQ/DeepLiDAR) with python3.6 and newest version of pytorch. 
