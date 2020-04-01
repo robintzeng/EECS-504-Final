@@ -46,7 +46,7 @@ def test(model, rgb, lidar, mask):
                             get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn)
  
         
-        return torch.squeeze(predicted_dense).cpu().numpy()
+        return torch.squeeze(predicted_dense).cpu()
 
 def get_testing_img_paths():
     gt_folder = os.path.join('/home', 'tmt', 'CV_data', 'selection', 'depth_selection', 'val_selection_cropped', 'groundtruth_depth')
@@ -72,8 +72,11 @@ def main():
 
     # load model
     model = deepLidar()
-    state_dict = torch.load(args.model_path, map_location=DEVICE)["state_dict"]
+    dic = torch.load(args.model_path)
+    state_dict = dic["state_dict"]
     model.load_state_dict(state_dict)
+    print('Loss of loaded model: {:.4f}'.format(dic['val_loss']))
+
 
     transformer = image_transforms()
     pbar = tqdm(range(num_testing_image))
@@ -94,7 +97,7 @@ def main():
         saved_path = os.path.join(SAVED_DIR, fn)
 
         # run model
-        pred = test(model, rgb, lidar, mask)
+        pred = test(model, rgb, lidar, mask).numpy()
         pred = np.where(pred <= 0.0, 0.9, pred)
 
         gt = gt.reshape(gt.shape[0], gt.shape[1])
