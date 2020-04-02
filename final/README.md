@@ -103,4 +103,13 @@ RMSE: 1191.6127 on **depth_selection/val_selection_cropped** data
 ```
 tensorboard --logdir runs/
 ```
-input data (rgb image, lidar image)
+
+## Experiment
+Input data (rgb image, lidar image)
+![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/input.png)
+
+Groundtruth (surface normal, dense depth)
+![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/gt.png)
+
+Predicted result (surface normal, dense depth)
+![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/pred.png)
