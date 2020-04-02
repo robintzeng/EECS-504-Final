@@ -84,10 +84,20 @@ python3 generate_normals.py
 ```
 python3 main.py
 ```
+There are three different stages.
+1. (N) Train surface normal
+2. (D) Train depth of color pathway and normal pathway
+3. (A) Train whole network
+
+The result provided below is train N stage for 15 epoch, then train D stage for 15 epoch, and then train A stage for 15 epoch
+
+If you don't want to use surface normal, or you don't have surface normal data, you can directly train A stage
+
 ### Test
 ```
 python3 test.py
 ```
+RMSE: 1191.6127 on **depth_selection/val_selection_cropped** data
 
 ## Tensorboard Visualization
 
