@@ -100,5 +100,7 @@ python3 test.py
 RMSE: 1191.6127 on **depth_selection/val_selection_cropped** data
 
 ## Tensorboard Visualization
-
-
+```
+tensorboard --logdir runs/
+```
+input data (rgb image, lidar image)
