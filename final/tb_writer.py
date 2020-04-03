@@ -2,6 +2,8 @@ from dataloader.dataloader import get_loader
 from training.utils import normal_to_0_1
 from tensorboardX import SummaryWriter
 import torch
+import numpy as np
+
 class TensorboardWriter():
     def __init__(self, path):
         self.writer = SummaryWriter(path)
@@ -21,7 +23,11 @@ class TensorboardWriter():
             self.writer.add_image('lidar input', lidar[0], 1)
             self.writer.add_image('GroundTruth depth', normal_to_0_1(gt_depth[0]), 1)
             self.writer.add_image('GroundTruth surface normal', normal_to_0_1(gt_surface_normal[0]), 1)
-            self.mask = mask # b x 1 x w x h
+            
+            print(gt_depth.size())
+            self.gt_mask = np.where(gt_depth.numpy() > 0.0, 1.0, 0.0) # b x 1 x w x h
+            print(self.gt_mask)
+
             self.gt_normal_mask = gt_normal_mask # b x 1 x w x h
             #print(mask.size())
             #print(gt_normal_mask.size())
@@ -48,7 +54,7 @@ class TensorboardWriter():
         self.writer.add_image('predicted_dense', normal_to_0_1(predicted_dense[0]), epoch)
         self.writer.add_image('pred_surface_normal', normal_to_0_1(pred_surface_normal[0]), epoch)
 
-        self.writer.add_image('mask_predicted_dense', normal_to_0_1(predicted_dense[0]*self.mask[0]), epoch)
+        self.writer.add_image('mask_predicted_dense', normal_to_0_1(predicted_dense[0]*self.gt_mask[0]), epoch)
         masked_normal = (pred_surface_normal[0]+torch.max(pred_surface_normal[0]))*self.gt_normal_mask[0]
         self.writer.add_image('mask_pred_surface_normal', normal_to_0_1(masked_normal), epoch)
 
