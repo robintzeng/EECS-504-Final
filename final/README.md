@@ -79,7 +79,7 @@ Please set the path in the **env.py** first
 ```
 SAVED_MODEL_PATH = './saved_model' # save model in this directory
 KITTI_DATASET_PATH = /PATH/TO/KITTI_data/ # path to KITTI_data as structured in the above
-PREDICTED_RESULT_DIR = './predicted_dense' # predicted result (used in test.py)
+PREDICTED_RESULT_DIR = './predicted_dense' # path to save predicted figures (used in test.py)
 ```
 
 
@@ -135,6 +135,8 @@ python3 test.py -m <MODEL_PATH> -n <NUM_DATA> -cpu
         the path of loaded model
     -cpu
         if you want to use CPU to test
+    -s
+        if you want to save predicted figure in PREDICTED_RESULT_DIR
 ```
 The following results are testing on **depth_selection/val_selection_cropped** data
 |  Setting   | RMSE (mm)  |
@@ -143,7 +145,6 @@ The following results are testing on **depth_selection/val_selection_cropped** d
 | B  | 单元格 |
 | C  | 单元格 |
 
-RMSE: 1191.6127 (mm) on **depth_selection/val_selection_cropped** data
 
 ## Tensorboard Visualization
 ```
