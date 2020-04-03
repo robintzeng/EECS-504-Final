@@ -115,5 +115,8 @@ Input data (rgb image, lidar image)
 Groundtruth (surface normal, dense depth)
 ![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/gt.png)
 
+Masked predicted result (Masked surface normal, Masked dense depth)
+![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/mask_pred.png)
+
 Predicted result (surface normal, dense depth)
 ![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/pred.png)
