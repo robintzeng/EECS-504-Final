@@ -10,6 +10,7 @@ from model.DeepLidar import deepLidar
 from tb_writer import TensorboardWriter
 from training.train import EarlyStop, train_val
 from training.utils import get_depth_and_normal
+from env import SAVED_MODEL_PATH
 
 parser = argparse.ArgumentParser(description='Depth Completion')
 parser.add_argument('-b', '--batch_size', type=int, default=16, help='batch size')
@@ -23,7 +24,7 @@ args = parser.parse_args()
 
 DEVICE = 'cuda' if torch.cuda.is_available() and not args.using_cpu else 'cpu'
 STAGE = args.stage.upper()
-SAVED_MODEL_PATH = 'saved_model'
+#SAVED_MODEL_PATH = 'saved_model'
 
 
 def main_train(model, stage):
@@ -67,8 +68,8 @@ def main():
         model.load_state_dict(state_dict)
         print('Loss of loaded model: {:.4f}'.format(dic['val_loss']))
 
-    main_train(model, 'N')
-    main_train(model, 'D')
+    #main_train(model, 'N')
+    #main_train(model, 'D')
     main_train(model, 'A')
 
 

@@ -8,7 +8,7 @@ from model.DeepLidar import deepLidar
 import torch.nn.functional as F
 from PIL import Image
 from training.utils import *
-
+from env import PREDICTED_RESULT_DIR
 
 parser = argparse.ArgumentParser(description='Depth Completion')
 parser.add_argument('-m', '--model_path', default='/home/tmt/CV_final/cys/EECS-545-Final/final/saved_model/model.tar',
@@ -21,7 +21,7 @@ args = parser.parse_args()
 
 
 
-SAVED_DIR = 'predicted_dense'
+#PREDICTED_RESULT_DIR = 'predicted_dense'
 DEVICE = 'cuda' if torch.cuda.is_available() and not args.using_cpu else 'cpu'
 
 
@@ -94,7 +94,7 @@ def main():
         
         # saved file path
         fn = os.path.basename(rgb_paths[idx])
-        saved_path = os.path.join(SAVED_DIR, fn)
+        saved_path = os.path.join(PREDICTED_RESULT_DIR, fn)
 
         # run model
         pred = test(model, rgb, lidar, mask).numpy()
@@ -108,12 +108,12 @@ def main():
         pbar.set_description('Mean error: {:.4f}'.format(mean_error))
 
         # save image
-        pred_show = pred * 256.0
-        pred_show = pred_show.astype('uint16')
-        res_buffer = pred_show.tobytes()
-        img = Image.new("I", pred_show.T.shape)
-        img.frombytes(res_buffer, 'raw', "I;16")
-        img.save(saved_path)
+        #pred_show = pred * 256.0
+        #pred_show = pred_show.astype('uint16')
+        #res_buffer = pred_show.tobytes()
+        #img = Image.new("I", pred_show.T.shape)
+        #img.frombytes(res_buffer, 'raw', "I;16")
+        #img.save(saved_path)
 
 
 if __name__ == '__main__':

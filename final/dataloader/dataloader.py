@@ -4,6 +4,7 @@ from skimage import io
 import numpy as np
 import random
 from dataloader.image_reader import *
+from env import KITTI_DATASET_PATH
 
 INTRINSICS = {
     "2011_09_26": (721.5377, 609.5593, 172.8540),
@@ -115,7 +116,7 @@ class depth_dataset(Dataset):
         """
         return img[x:x+h, y:y+w, :]
 # containing data_depth_annotated, data_depth_rgb, data_depth_velodyne
-KITTI_DATASET_PATH = os.path.join('/home', 'tmt', 'CV_data')
+#KITTI_DATASET_PATH = os.path.join('/home', 'tmt', 'CV_data')
 
 rgb_folder = os.path.join(KITTI_DATASET_PATH, 'data_depth_rgb')
 lidar_folder = os.path.join(KITTI_DATASET_PATH, 'data_depth_velodyne')
