@@ -88,19 +88,30 @@ python3 generate_normals.py
 ```
 python3 main.py
 ```
-There are three different stages.
+There are three different stages of training model.
 1. (N) Train surface normal
 2. (D) Train depth of color pathway and normal pathway
-3. (A) Train whole network
+3. (A) Train the whole network
 
-The result provided below is train N stage for 15 epoch, then train D stage for 15 epoch, and then train A stage for 15 epoch
+We test the model with 3 different settings
 
-You can also directly train A stage
+(A) Train N stage for 15 epoch, train D stage for 15 epoch, and then train A stage for 15 epoch
+
+(B) Train A for 12 epochs (due to early stop with patience 10)
+
+(C) Train A without training surface normals
 
 ### Test
 ```
 python3 test.py
 ```
+The following results are testing on **depth_selection/val_selection_cropped** data
+|  Setting   | RMSE (mm)  |
+|  ----  | ----  |
+| A  | 1191.6127 |
+| B  | 单元格 |
+| C  | 单元格 |
+
 RMSE: 1191.6127 (mm) on **depth_selection/val_selection_cropped** data
 
 ## Tensorboard Visualization
@@ -108,7 +119,7 @@ RMSE: 1191.6127 (mm) on **depth_selection/val_selection_cropped** data
 tensorboard --logdir runs/
 ```
 
-## Experiment
+## Experiment of setting A
 Input data (rgb image, lidar image)
 ![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/input.png)
 
