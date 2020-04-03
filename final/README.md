@@ -8,7 +8,7 @@ This repository is the implementation for [DeepLiDAR: Deep Surface Normal Guided
 (3) Make it easier to reproduce my result (**not author's result**, because by considering computational resources and time, there are some differences between author's implementation and mine)
  - Reduce model parameters. (Original model is too large to put onto single GPU, 3 GeForce GTX 1080 Ti GPUs)
  - Smaller training image (128 x 256). (Author uses 256 x 512)
- - Use less data to train (20000 images). (Author used 85898 data, and it takes about 3 days to train)
+ - Use less data to train (20000 images). (Author used 85898 images, and it takes about 3 days to train)
  - Slight implementation difference (Normal loss function at A stage)
 
 (4) I add comments on the code and make it more flexible and readable. 
@@ -72,10 +72,21 @@ pip3 install -r requirements.txt
 |   |   ├── val_selection_cropped
 
 ```
+
+### Path setting
+Please set the path in the **env.py** first
+
+```
+SAVED_MODEL_PATH = './saved_model' # save model in this directory
+KITTI_DATASET_PATH = /PATH/TO/KITTI_data/ # path to KITTI_data as structured in the above
+PREDICTED_RESULT_DIR = './predicted_dense' # predicted result (used in test.py)
+```
+
+
 ### To generate **data_depth_normals**
 First, enter **surface-normal/** to build and install library. 
 
-Second, set path in **generate_normals.py** and run the following script to generate **data_depth_normals**
+Second, run the following script to generate **data_depth_normals**
 ```
 python3 generate_normals.py
 ```
@@ -84,9 +95,22 @@ python3 generate_normals.py
 ## Usage
 
 
+
 ### Train and validation
 ```
-python3 main.py
+python3 main.py -b <BATCH_SIZE> -e <EPOCH> -m <SAVED_MODEL_NAME> -l <MODEL_PATH> -n <NUM_DATA> -cpu
+    -b <BATCH_SIZE>
+        batch size used for training and validation
+    -e <EPOCH>
+        the number of epoch for training and validation
+    -m <SAVED_MODEL_NAME>
+        the model name (be saved in SAVED_MODEL_PATH)
+    -l <MODEL_PATH>
+        specified the model path if you want to load previous model
+    -n <NUM_DATA>
+        the number of data used for training. (set -1 if you want to use all the training data (85898))
+    -cpu
+        if you want to use CPU to train
 ```
 There are three different stages of training model.
 1. (N) Train surface normal
@@ -102,8 +126,15 @@ We test the model with 3 different settings
 (C) Train A without training surface normals
 
 ### Test
+Test on **depth_selection/val_selection_cropped** data
 ```
-python3 test.py
+python3 test.py -m <MODEL_PATH> -n <NUM_DATA> -cpu
+    -n <NUM_DATA>
+        the number of data used for testing. (set -1 if you want to use all the testing data (1000))
+    -m <MODEL_PATH>
+        the path of loaded model
+    -cpu
+        if you want to use CPU to test
 ```
 The following results are testing on **depth_selection/val_selection_cropped** data
 |  Setting   | RMSE (mm)  |
