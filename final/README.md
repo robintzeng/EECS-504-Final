@@ -60,8 +60,8 @@ pip3 install -r requirements.txt
 |   ├── data_rgb
 |   |   ├── train
 |   |   |   ├── 2011_09_26_drive_0001_sync
-|   |   |   |   ├── image_02
-|   |   |   |   ├── image_03
+|   |   |       ├── image_02
+|   |   |       ├── image_03
 |   |   ├── val
 |   |   |   ├── (the same as train)
 |   ├── data_depth_normals
@@ -95,7 +95,7 @@ There are three different stages.
 
 The result provided below is train N stage for 15 epoch, then train D stage for 15 epoch, and then train A stage for 15 epoch
 
-If you don't want to use surface normal, or you don't have surface normal data, you can directly train A stage
+You can also directly train A stage
 
 ### Test
 ```
@@ -115,7 +115,7 @@ Input data (rgb image, lidar image)
 Groundtruth (surface normal, dense depth)
 ![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/gt.png)
 
-Masked predicted result (Masked surface normal, Masked dense depth)
+Masked predicted result (masked surface normal, masked dense depth)
 ![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/mask_pred.png)
 
 Predicted result (surface normal, dense depth)
