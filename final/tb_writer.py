@@ -24,7 +24,7 @@ class TensorboardWriter():
             self.writer.add_image('GroundTruth depth', normal_to_0_1(gt_depth[0]), 1)
             self.writer.add_image('GroundTruth surface normal', normal_to_0_1(gt_surface_normal[0]), 1)
             
-            self.gt_mask = np.where(gt_depth.numpy() > 0.0, 1.0, 0.0) # b x 1 x w x h
+            self.gt_mask = torch.tensor(np.where(gt_depth.numpy() > 0.0, 1.0, 0.0)) # b x 1 x w x h
             self.gt_normal_mask = gt_normal_mask # b x 1 x w x h
 
             return rgb, lidar, mask
@@ -39,7 +39,9 @@ class TensorboardWriter():
         predicted_dense: predicted dense depth from model (1 x c x h x w)
         pred_surface_normal: predicted surface normal from model (1 x c x h x w)
         """
-        
+        self.gt_mask = self.gt_mask.to(predicted_dense.device)
+        self.gt_normal_mask = self.gt_normal_mask.to(predicted_dense.device)
+
         loss_type = ['loss', 'loss_d', 'loss_c', 'loss_n', 'loss_normal']
 
         for i, t in enumerate(loss_type):
