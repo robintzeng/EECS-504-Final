@@ -21,7 +21,6 @@ args = parser.parse_args()
 
 
 
-#PREDICTED_RESULT_DIR = 'predicted_dense'
 DEVICE = 'cuda' if torch.cuda.is_available() and not args.using_cpu else 'cpu'
 
 

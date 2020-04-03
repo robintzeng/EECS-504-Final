@@ -24,7 +24,6 @@ args = parser.parse_args()
 
 DEVICE = 'cuda' if torch.cuda.is_available() and not args.using_cpu else 'cpu'
 STAGE = args.stage.upper()
-#SAVED_MODEL_PATH = 'saved_model'
 
 
 def main_train(model, stage):

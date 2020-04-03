@@ -116,7 +116,6 @@ class depth_dataset(Dataset):
         """
         return img[x:x+h, y:y+w, :]
 # containing data_depth_annotated, data_depth_rgb, data_depth_velodyne
-#KITTI_DATASET_PATH = os.path.join('/home', 'tmt', 'CV_data')
 
 rgb_folder = os.path.join(KITTI_DATASET_PATH, 'data_depth_rgb')
 lidar_folder = os.path.join(KITTI_DATASET_PATH, 'data_depth_velodyne')

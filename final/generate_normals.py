@@ -10,7 +10,6 @@ INTRINSICS = {
     "2011_10_03": (718.8560, 607.1928, 185.2157),
 }
 
-#KITTI_DATASET_PATH = os.path.join('/home', 'tmt', 'CV_data')
 KITTI_GT_PATH = os.path.join(KITTI_DATASET_PATH, 'data_depth_annotated')
 KITTI_NORMALS_PATH = os.path.join(KITTI_DATASET_PATH, 'data_depth_normals')
 
