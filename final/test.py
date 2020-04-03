@@ -8,14 +8,14 @@ from model.DeepLidar import deepLidar
 import torch.nn.functional as F
 from PIL import Image
 from training.utils import *
-from env import PREDICTED_RESULT_DIR
+from env import PREDICTED_RESULT_DIR, KITTI_DATASET_PATH
 
 parser = argparse.ArgumentParser(description='Depth Completion')
-parser.add_argument('-m', '--model_path', default='/home/tmt/CV_final/cys/EECS-545-Final/final/saved_model/model.tar',
-                    help='load model')
+parser.add_argument('-m', '--model_path', help='loaded model path')
 parser.add_argument('-n', '--num_testing_image', type=int, default=10, 
                     help='The number of testing image to be runned')
 parser.add_argument('-cpu', '--using_cpu', action='store_true', help='use cpu')
+parser.add_argument('-s', '--save_fig', action='store_true', help='save predicted result or not')
 
 args = parser.parse_args()
 
@@ -48,9 +48,9 @@ def test(model, rgb, lidar, mask):
         return torch.squeeze(predicted_dense).cpu()
 
 def get_testing_img_paths():
-    gt_folder = os.path.join('/home', 'tmt', 'CV_data', 'selection', 'depth_selection', 'val_selection_cropped', 'groundtruth_depth')
-    rgb_folder = os.path.join('/home', 'tmt', 'CV_data', 'selection', 'depth_selection', 'val_selection_cropped', 'image')
-    lidar_folder = os.path.join('/home', 'tmt', 'CV_data', 'selection', 'depth_selection', 'val_selection_cropped', 'velodyne_raw')
+    gt_folder = os.path.join(KITTI_DATASET_PATH, 'depth_selection', 'val_selection_cropped', 'groundtruth_depth')
+    rgb_folder = os.path.join(KITTI_DATASET_PATH, 'depth_selection', 'val_selection_cropped', 'image')
+    lidar_folder = os.path.join(KITTI_DATASET_PATH, 'depth_selection', 'val_selection_cropped', 'velodyne_raw')
 
     gt_filenames = sorted([img for img in os.listdir(gt_folder)])
     rgb_filenames = sorted([img for img in os.listdir(rgb_folder)])
@@ -106,13 +106,14 @@ def main():
         mean_error = running_error / (idx + 1)
         pbar.set_description('Mean error: {:.4f}'.format(mean_error))
 
-        # save image
-        #pred_show = pred * 256.0
-        #pred_show = pred_show.astype('uint16')
-        #res_buffer = pred_show.tobytes()
-        #img = Image.new("I", pred_show.T.shape)
-        #img.frombytes(res_buffer, 'raw', "I;16")
-        #img.save(saved_path)
+        if args.save_fig:
+            # save image
+            pred_show = pred * 256.0
+            pred_show = pred_show.astype('uint16')
+            res_buffer = pred_show.tobytes()
+            img = Image.new("I", pred_show.T.shape)
+            img.frombytes(res_buffer, 'raw', "I;16")
+            img.save(saved_path)
 
 
 if __name__ == '__main__':

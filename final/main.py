@@ -17,13 +17,11 @@ parser.add_argument('-b', '--batch_size', type=int, default=16, help='batch size
 parser.add_argument('-e', '--epoch', type=int, default=1000, help='number of epochs')
 parser.add_argument('-m', '--saved_model_name', type=str, default='model', help='saved_model_name')
 parser.add_argument('-cpu', '--using_cpu', action='store_true', help='use cpu')
-parser.add_argument('-s', '--stage', type=str, default='A', help='decide stage to train network')
 parser.add_argument('-l', '--load_model', help='load model')
 parser.add_argument('-n', '--num_data', type=int, default=20000, help='the number of data used to train')
 args = parser.parse_args()
 
 DEVICE = 'cuda' if torch.cuda.is_available() and not args.using_cpu else 'cpu'
-STAGE = args.stage.upper()
 
 
 def main_train(model, stage):
