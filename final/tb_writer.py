@@ -24,13 +24,9 @@ class TensorboardWriter():
             self.writer.add_image('GroundTruth depth', normal_to_0_1(gt_depth[0]), 1)
             self.writer.add_image('GroundTruth surface normal', normal_to_0_1(gt_surface_normal[0]), 1)
             
-            print(gt_depth.size())
             self.gt_mask = np.where(gt_depth.numpy() > 0.0, 1.0, 0.0) # b x 1 x w x h
-            print(self.gt_mask)
-
             self.gt_normal_mask = gt_normal_mask # b x 1 x w x h
-            #print(mask.size())
-            #print(gt_normal_mask.size())
+
             return rgb, lidar, mask
 
     def tensorboard_write(self, epoch, train_losses, val_losses, predicted_dense, pred_surface_normal):
