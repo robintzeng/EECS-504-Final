@@ -142,7 +142,7 @@ The following results are testing on **depth_selection/val_selection_cropped** d
 |  Setting   | RMSE (mm)  |
 |  ----  | ----  |
 | A  | 1191.6127 |
-| B  | 单元格 |
+| B  | 1182.6613 |
 | C  | 单元格 |
 
 
