@@ -121,7 +121,9 @@ We test the model with 3 different settings
 
 (A) Train N stage for 15 epoch, train D stage for 15 epoch, and then train A stage for 15 epoch
 
-(B) Train A for 12 epochs (due to early stop with patience 10)
+(B) Train A for 12 epochs (due to early stop with patience 10, no update parameter of deepLidar.normal)
+
+(c) Train A for 12 epochs (update parameter of deepLidar.normal)
 
 
 ### Test
@@ -141,7 +143,8 @@ The following results are testing on **depth_selection/val_selection_cropped** d
 |  Setting   | RMSE (mm)  |
 |  ----  | ----  |
 | A  | 1191.6127 |
-| D  | 1182.6613 |
+| B  | 1182.6613 |
+| C  | ??? |
 
 
 ## Tensorboard Visualization
