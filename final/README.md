@@ -125,6 +125,7 @@ We test the model with 3 different settings
 
 (C) Train A without training surface normals
 
+(D) Train A without training surface normals (not update surface normals parameter)
 ### Test
 Test on **depth_selection/val_selection_cropped** data
 ```
@@ -142,7 +143,7 @@ The following results are testing on **depth_selection/val_selection_cropped** d
 |  Setting   | RMSE (mm)  |
 |  ----  | ----  |
 | A  | 1191.6127 |
-| B  | 1182.6613 |
+| D  | 1182.6613 |
 | C  | 单元格 |
 
 
