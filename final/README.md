@@ -115,7 +115,7 @@ python3 main.py -b <BATCH_SIZE> -e <EPOCH> -m <SAVED_MODEL_NAME> -l <MODEL_PATH>
 There are three different stages of training model.
 1. (N) Train surface normal
 2. (D) Train depth of color pathway and normal pathway
-3. (A) Train the whole network
+3. (A) Train the whole network (fix surface normal network)
 
 We test the model with 3 different settings
 
@@ -123,9 +123,7 @@ We test the model with 3 different settings
 
 (B) Train A for 12 epochs (due to early stop with patience 10)
 
-(C) Train A without training surface normals
 
-(D) Train A without training surface normals (not update surface normals parameter)
 ### Test
 Test on **depth_selection/val_selection_cropped** data
 ```
@@ -144,7 +142,6 @@ The following results are testing on **depth_selection/val_selection_cropped** d
 |  ----  | ----  |
 | A  | 1191.6127 |
 | D  | 1182.6613 |
-| C  | 单元格 |
 
 
 ## Tensorboard Visualization
