@@ -18,7 +18,7 @@ def get_loader(split='train', batch_size=8, shuffle=True, num_workers=8, num_dat
     """Get torch dataloader."""
     rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths = get_paths(split)
     dataset = depth_dataset(rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths, num_data, crop=crop)
-    loader = DataLoader(dataset, batch_size=batch_size)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
     return loader
 

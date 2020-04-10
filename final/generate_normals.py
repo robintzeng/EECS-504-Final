@@ -2,6 +2,7 @@ import os
 from surface_normal import normals_from_depth
 from skimage import io
 from env import KITTI_DATASET_PATH
+
 INTRINSICS = {
     "2011_09_26": (721.5377, 609.5593, 172.8540),
     "2011_09_28": (707.0493, 604.0814, 180.5066),
