@@ -91,6 +91,8 @@ Second, run the following script to generate **data_depth_normals**
 python3 generate_normals.py
 ```
 
+## Pretrained Model Download
+See test section
 
 ## Usage
 
@@ -119,11 +121,11 @@ There are three different stages of training model.
 
 We test the model with 3 different settings
 
-(A) Train N stage for 15 epoch, train D stage for 15 epoch, and then train A stage for 15 epoch
+(A) Train N stage for 15 epoch, train D stage for 15 epoch, and then train A stage for 15 epoch ([download](https://drive.google.com/open?id=1q5crzuMye55SwNMMMY5BDc67M4pziGUM))
 
-(B) Train A for 12 epochs (due to early stop with patience 10, no update parameter of deepLidar.normal (random))
+(B) Train A for 12 epochs (due to early stop with patience 10, no update parameter of deepLidar.normal (random)) ([download](https://drive.google.com/open?id=1uG6p4wuD9CumYz7hhlCOzkKs7Aoeo6GK))
 
-(c) Train A for 10 epochs (update parameter of deepLidar.normal)
+(c) Train A for 10 epochs (update parameter of deepLidar.normal) ([download](https://drive.google.com/open?id=1Mgf1GfryuwS-NIigqSvg0Uxf0JcvuKdr))
 
 
 ### Test
@@ -142,9 +144,9 @@ python3 test.py -m <MODEL_PATH> -n <NUM_DATA> -cpu
 The following results are testing on **depth_selection/val_selection_cropped** data
 |  Setting   | RMSE (mm)  |
 |  ----  | ----  |
-| A  | 1191.6127 |
-| B  | 1182.6613 |
-| C  | 1026.8722 |
+| A ([download](https://drive.google.com/open?id=1q5crzuMye55SwNMMMY5BDc67M4pziGUM)) | 1191.6127 |
+| B ([download](https://drive.google.com/open?id=1uG6p4wuD9CumYz7hhlCOzkKs7Aoeo6GK)) | 1182.6613 |
+| C ([download](https://drive.google.com/open?id=1Mgf1GfryuwS-NIigqSvg0Uxf0JcvuKdr)) | 1026.8722 |
 
 ### Test a pair of inputs
 Run a pair of rgb and lidar image as input, and then save the predicted dense depth
