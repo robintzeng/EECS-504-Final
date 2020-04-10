@@ -92,11 +92,9 @@ python3 generate_normals.py
 ```
 
 ## Pretrained Model Download
-See test section
+See the next section
 
 ## Usage
-
-
 
 ### Train and validation
 ```
