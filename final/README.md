@@ -9,7 +9,7 @@ This repository is the implementation for [DeepLiDAR: Deep Surface Normal Guided
  - Reduce model parameters. (Original model is too large to put onto single GPU, 3 GeForce GTX 1080 Ti GPUs)
  - Smaller training image (128 x 256). (Author uses 256 x 512)
  - Use less data to train (20000 images). (Author used 85898 images, and it takes about 3 days to train)
- - Slight implementation difference (Normal loss function at A stage)
+ - Slight implementation difference 
 
 (4) I add comments on the code and make it more flexible and readable. 
 
@@ -146,7 +146,7 @@ The following results are testing on **depth_selection/val_selection_cropped** d
 | B  | 1182.6613 |
 | C  | 1026.8722 |
 
-## Test a pair of inputs
+### Test a pair of inputs
 Run a pair of rgb and lidar image as input, and then save the predicted dense depth
 ```
 python3 test_a_pair.py --model_path </PATH/TO/PRETRAIN_MODEL> --rgb <PATH/TO/RGB_IMAGE> --lidar <PATH/TO/LIDAR_IMAGE>
