@@ -179,3 +179,16 @@ Masked predicted result (masked surface normal, masked dense depth)
 
 Predicted result (surface normal, dense depth)
 ![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/pred.png)
+
+
+## Citation 
+If you use this method in your work, please cite the following:
+```
+@InProceedings{Qiu_2019_CVPR,
+author = {Qiu, Jiaxiong and Cui, Zhaopeng and Zhang, Yinda and Zhang, Xingdi and Liu, Shuaicheng and Zeng, Bing and Pollefeys, Marc},
+title = {DeepLiDAR: Deep Surface Normal Guided Depth Prediction for Outdoor Scene From Sparse LiDAR Data and Single Color Image},
+booktitle = {The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+month = {June},
+year = {2019}
+}
+```
