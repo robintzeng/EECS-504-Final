@@ -115,15 +115,16 @@ python3 main.py -b <BATCH_SIZE> -e <EPOCH> -m <SAVED_MODEL_NAME> -l <MODEL_PATH>
 There are three different stages of training model.
 1. (N) Train surface normal
 2. (D) Train depth of color pathway and normal pathway
-3. (A) Train the whole network
+3. (A) Train the whole network (fix surface normal network)
 
 We test the model with 3 different settings
 
 (A) Train N stage for 15 epoch, train D stage for 15 epoch, and then train A stage for 15 epoch
 
-(B) Train A for 12 epochs (due to early stop with patience 10)
+(B) Train A for 12 epochs (due to early stop with patience 10, no update parameter of deepLidar.normal (random))
 
-(C) Train A without training surface normals
+(c) Train A for 10 epochs (update parameter of deepLidar.normal)
+
 
 ### Test
 Test on **depth_selection/val_selection_cropped** data
@@ -142,8 +143,8 @@ The following results are testing on **depth_selection/val_selection_cropped** d
 |  Setting   | RMSE (mm)  |
 |  ----  | ----  |
 | A  | 1191.6127 |
-| B  | 单元格 |
-| C  | 单元格 |
+| B  | 1182.6613 |
+| C  | 1026.8722 |
 
 
 ## Tensorboard Visualization
