@@ -71,7 +71,7 @@ def main():
 
     # load model
     model = deepLidar()
-    dic = torch.load(args.model_path)
+    dic = torch.load(args.model_path, map_location=DEVICE)
     state_dict = dic["state_dict"]
     model.load_state_dict(state_dict)
     print('Loss of loaded model: {:.4f}'.format(dic['val_loss']))
