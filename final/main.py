@@ -46,7 +46,8 @@ def main_train(model, stage):
         train_losses, val_losses = train_val(model, loader, epoch, DEVICE, stage)
 
         # predict dense and surface normal using testing image and write them to tensorboard
-        predicted_dense, pred_surface_normal = get_depth_and_normal(model, testing_rgb, testing_lidar, testing_mask)
+        predicted_dense, pred_surface_normal = get_depth_and_normal(model, testing_rgb, testing_lidar, testing_mask,'H')
+        
         tb_writer.tensorboard_write(epoch, train_losses, val_losses, predicted_dense, pred_surface_normal)
 
         if early_stop.stop(val_losses[0], model, epoch+1, saved_model_path):
@@ -67,7 +68,8 @@ def main():
 
     #main_train(model, 'N')
     #main_train(model, 'D')
-    main_train(model, 'A')
+    #main_train(model, 'A')
+    main_train(model, 'H')
 
 
 if __name__ == '__main__':

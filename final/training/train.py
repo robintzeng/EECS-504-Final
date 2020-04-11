@@ -3,8 +3,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 import torch.optim as optim
-from training.utils import get_loss
-
+from training.utils import get_loss,get_lossH
+## handcraft
+from ip_basic import depth_map_utils
 
 
 def get_optimizer(model, stage):
@@ -18,7 +19,7 @@ def get_optimizer(model, stage):
        optimizer
        loss: list, weight of loss_c, loss_d, loss, loss_normal
     """
-    assert stage in {'D', 'N', 'A'}
+    assert stage in {'D', 'N', 'A','H'}
 
     if stage == 'N':
         for param in model.parameters():
@@ -40,7 +41,24 @@ def get_optimizer(model, stage):
         optimizer = optim.Adam([{'params':model.color_path.parameters()},
                                 {'params':model.normal_path.parameters()}], lr=0.001, betas=(0.9, 0.999))
         loss_weights = [0.3, 0.3, 0.0, 0.1]
+    ## handCraft 
+    elif stage == 'H':
+        for param in model.color_path.parameters():
+            param.requires_grad = True  
+        for param in model.normal.parameters():
+            param.requires_grad = False  
+        
+        for param in model.mask_block_H.parameters():
+            param.require_grad = True
 
+
+        optimizer = optim.Adam([{'params':model.color_path.parameters()},
+                                {'params':model.normal_path.parameters()},
+                                {'params':model.mask_block_C.parameters()},
+                                {'params':model.mask_block_N.parameters()},
+                                {'params':model.mask_block_H.parameters()}], lr=0.001, betas=(0.9, 0.999))
+
+        loss_weights = [0.3, 0.3, 0.5, 0.1,0.1]
     else:
         for param in model.color_path.parameters():
             param.requires_grad = True  
@@ -65,78 +83,171 @@ def train_val(model, loader, epoch, device, stage):
     """
 
     model, optimizer, loss_weights = get_optimizer(model, stage)
-    train_loss, val_loss = [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]
+    if stage != 'H':
+        train_loss, val_loss = [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]
 
-    for phase in ['train', 'val']:
-        total_loss, total_loss_d, total_loss_c, total_loss_n, total_loss_normal = 0, 0, 0, 0, 0
-        total_pic = 0 # used to calculate average loss
-        data_loader = loader[phase]
-        pbar = tqdm(iter(data_loader))
-
-        if phase == 'train':
-            model.train()
-        else:
-            model.eval()
-
-        for num_batch, (rgb, lidar, mask, gt_depth, params, gt_surface_normal, gt_normal_mask) in enumerate(pbar):
-            """
-            rgb: b x 3 x 128 x 256
-            lidar: b x 1 x 128 x 256
-            mask: b x 1 x 128 x 256
-            gt: b x 1 x 128 x 256
-            params: b x 128 x 256 x 3
-            """
-            rgb, lidar, mask = rgb.to(device), lidar.to(device), mask.to(device)
-            gt_depth, params = gt_depth.to(device), params.to(device)
-            gt_surface_normal, gt_normal_mask = gt_surface_normal.to(device), gt_normal_mask.to(device)
+        for phase in ['train', 'val']:
+            total_loss, total_loss_d, total_loss_c, total_loss_n, total_loss_normal = 0, 0, 0, 0, 0
+            total_pic = 0 # used to calculate average loss
+            data_loader = loader[phase]
+            pbar = tqdm(iter(data_loader))
 
             if phase == 'train':
-                color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, stage)
+                model.train()
             else:
-                with torch.no_grad():
+                model.eval()
+
+            for num_batch, (rgb, lidar, mask, gt_depth, params, gt_surface_normal, gt_normal_mask) in enumerate(pbar):
+                """
+                rgb: b x 3 x 128 x 256
+                lidar: b x 1 x 128 x 256
+                mask: b x 1 x 128 x 256
+                gt: b x 1 x 128 x 256
+                params: b x 128 x 256 x 3
+                """
+                rgb, lidar, mask = rgb.to(device), lidar.to(device), mask.to(device)
+                gt_depth, params = gt_depth.to(device), params.to(device)
+                gt_surface_normal, gt_normal_mask = gt_surface_normal.to(device), gt_normal_mask.to(device)
+
+                if phase == 'train':
                     color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, stage)
-            # color_path_dense: b x 2 x 128 x 256
-            # normal_path_dense: b x 2 x 128 x 256
-            # color_mask: b x 1 x 128 x 256
-            # normal_mask: b x 1 x 128 x 256
-            # surface_normal: b x 3 x 128 x 256
+                else:
+                    with torch.no_grad():
+                        color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, stage)
+                # color_path_dense: b x 2 x 128 x 256
+                # normal_path_dense: b x 2 x 128 x 256
+                # color_mask: b x 1 x 128 x 256
+                # normal_mask: b x 1 x 128 x 256
+                # surface_normal: b x 3 x 128 x 256
 
-            loss_c, loss_n, loss_d, loss_normal = get_loss(color_path_dense, normal_path_dense, color_attn,\
-                                                            normal_attn, pred_surface_normal, stage,\
-                                                            gt_depth, params, gt_surface_normal, gt_normal_mask)
+                loss_c, loss_n, loss_d, loss_normal = get_loss(color_path_dense, normal_path_dense, color_attn,\
+                                                                normal_attn, pred_surface_normal, stage,\
+                                                                gt_depth, params, gt_surface_normal, gt_normal_mask)
 
-            loss = loss_weights[0] * loss_c + loss_weights[1] * loss_n + loss_weights[2] * loss_d + loss_weights[3] * loss_normal
+                loss = loss_weights[0] * loss_c + loss_weights[1] * loss_n + loss_weights[2] * loss_d + loss_weights[3] * loss_normal
 
-            total_loss += loss.item()
-            total_loss_d += loss_d.item()
-            total_loss_c += loss_c.item()
-            total_loss_n += loss_n.item()
-            total_loss_normal += loss_normal.item()
+                total_loss += loss.item()
+                total_loss_d += loss_d.item()
+                total_loss_c += loss_c.item()
+                total_loss_n += loss_n.item()
+                total_loss_normal += loss_normal.item()
 
-            total_pic += rgb.size(0)
+                total_pic += rgb.size(0)
+
+                if phase == 'train':
+                    train_loss[0] = total_loss/total_pic
+                    train_loss[1] = total_loss_d/total_pic
+                    train_loss[2] = total_loss_c/total_pic
+                    train_loss[3] = total_loss_n/total_pic
+                    train_loss[4] = total_loss_normal/total_pic
+
+                    loss.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
+
+                else:
+                    val_loss[0] = total_loss/total_pic
+                    val_loss[1] = total_loss_d/total_pic
+                    val_loss[2] = total_loss_c/total_pic
+                    val_loss[3] = total_loss_n/total_pic
+                    val_loss[4] = total_loss_normal/total_pic
+
+                pbar.set_description('[{}] Epoch: {}; loss: {:.4f}; loss_d: {:.4f}, loss_c: {:.4f}, loss_n: {:.4f}, loss_normal: {:.4f}'.\
+                    format(phase.upper(), epoch + 1, total_loss/total_pic , total_loss_d/total_pic, \
+                    total_loss_c/total_pic, total_loss_n/total_pic, total_loss_normal/total_pic))
+    ### stage == 'H'
+    else : 
+        train_loss, val_loss = [0, 0, 0, 0, 0 ,0], [0, 0, 0, 0, 0 ,0]
+
+        for phase in ['train', 'val']:
+            total_loss, total_loss_d, total_loss_c, total_loss_n, total_loss_normal,total_loss_hand = 0, 0, 0, 0, 0, 0
+            total_pic = 0 # used to calculate average loss
+            data_loader = loader[phase]
+            pbar = tqdm(iter(data_loader))
 
             if phase == 'train':
-                train_loss[0] = total_loss/total_pic
-                train_loss[1] = total_loss_d/total_pic
-                train_loss[2] = total_loss_c/total_pic
-                train_loss[3] = total_loss_n/total_pic
-                train_loss[4] = total_loss_normal/total_pic
-
-                loss.backward()
-                optimizer.step()
-                optimizer.zero_grad()
-
+                model.train()
             else:
-                val_loss[0] = total_loss/total_pic
-                val_loss[1] = total_loss_d/total_pic
-                val_loss[2] = total_loss_c/total_pic
-                val_loss[3] = total_loss_n/total_pic
-                val_loss[4] = total_loss_normal/total_pic
+                model.eval()
 
-            pbar.set_description('[{}] Epoch: {}; loss: {:.4f}; loss_d: {:.4f}, loss_c: {:.4f}, loss_n: {:.4f}, loss_normal: {:.4f}'.\
-                format(phase.upper(), epoch + 1, total_loss/total_pic , total_loss_d/total_pic, \
-                total_loss_c/total_pic, total_loss_n/total_pic, total_loss_normal/total_pic))
+            fill_type = 'fast'
+            extrapolate = True
+            blur_type = 'gaussian'
 
+            for num_batch, (rgb, lidar, mask, gt_depth, params, gt_surface_normal, gt_normal_mask) in enumerate(pbar):
+                """
+                rgb: b x 3 x 128 x 256
+                lidar: b x 1 x 128 x 256
+                mask: b x 1 x 128 x 256
+                gt: b x 1 x 128 x 256
+                params: b x 128 x 256 x 3
+                """
+                
+                b,_,h,w = rgb.shape
+                ### handcraft
+                pred_hand_dense = torch.zeros((b,1,h,w),dtype=torch.float).to(device) 
+                for i in range(b):
+                    pred_hand_dense[i,:,:,:] = torch.from_numpy(depth_map_utils.fill_in_fast(
+                        lidar[i,0,:,:].numpy(), extrapolate=extrapolate, blur_type=blur_type)).float()
+                
+                pred_hand_dense = pred_hand_dense.to(device)
+                
+                #print(pred_hand_dense.device)
+
+                rgb, lidar, mask = rgb.to(device), lidar.to(device), mask.to(device)
+                gt_depth, params = gt_depth.to(device), params.to(device)
+                gt_surface_normal, gt_normal_mask = gt_surface_normal.to(device), gt_normal_mask.to(device)
+
+                if phase == 'train':
+                    color_path_dense, normal_path_dense, color_attn, normal_attn,hand_attn, pred_surface_normal = model(rgb, lidar, mask, stage)
+                else:
+                    with torch.no_grad():
+                        color_path_dense, normal_path_dense, color_attn, normal_attn, hand_attn, pred_surface_normal = model(rgb, lidar, mask, stage)
+                # color_path_dense: b x 2 x 128 x 256
+                # normal_path_dense: b x 2 x 128 x 256
+                # color_mask: b x 1 x 128 x 256
+                # normal_mask: b x 1 x 128 x 256
+                # surface_normal: b x 3 x 128 x 256
+                
+                
+                loss_c, loss_n, loss_d, loss_normal, loss_hand = get_lossH(color_path_dense, normal_path_dense, color_attn,\
+                                                                normal_attn, hand_attn, pred_surface_normal, stage,\
+                                                                gt_depth, params, gt_surface_normal, gt_normal_mask,pred_hand_dense)
+
+                loss = loss_weights[0] * loss_c + loss_weights[1] * loss_n + loss_weights[2] * loss_d + loss_weights[3] * loss_normal + loss_weights[4]*loss_hand
+
+                total_loss += loss.item()
+                total_loss_d += loss_d.item()
+                total_loss_c += loss_c.item()
+                total_loss_n += loss_n.item()
+                total_loss_normal += loss_normal.item()
+                total_loss_hand += loss_hand.item()
+
+                total_pic += rgb.size(0)
+
+                if phase == 'train':
+                    train_loss[0] = total_loss/total_pic
+                    train_loss[1] = total_loss_d/total_pic
+                    train_loss[2] = total_loss_c/total_pic
+                    train_loss[3] = total_loss_n/total_pic
+                    train_loss[4] = total_loss_normal/total_pic
+                    train_loss[5] = total_loss_hand / total_pic
+
+                    loss.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
+
+                else:
+                    val_loss[0] = total_loss/total_pic
+                    val_loss[1] = total_loss_d/total_pic
+                    val_loss[2] = total_loss_c/total_pic
+                    val_loss[3] = total_loss_n/total_pic
+                    val_loss[4] = total_loss_normal/total_pic
+                    val_loss[5] = total_loss_hand / total_pic
+
+                pbar.set_description('[{}] Epoch: {}; loss: {:.4f}; loss_d: {:.4f}, loss_c: {:.4f}, loss_n: {:.4f}, loss_normal: {:.4f}, loss_hand: {:.4f}'.\
+                    format(phase.upper(), epoch + 1, total_loss/total_pic , total_loss_d/total_pic, \
+                    total_loss_c/total_pic, total_loss_n/total_pic, total_loss_normal/total_pic, total_loss_hand/total_pic))
     return train_loss, val_loss
 
 class EarlyStop():

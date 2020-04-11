@@ -153,7 +153,7 @@ class deepCompletionUnit(nn.Module):
         cat3 = adaptive_cat(r3, self.deconv2(cat4), o3) + s3 
 
         o2 = self.upsample1(self.predict_normal2(cat3))
-        cat2 = adaptive_cat(r2, self.deconv1(cat3), o2) + s2 
+        cat2 = adaptive_cat(r2, self.deconv1(cat3), o2) + s2
         dense = self.predict_normal1(cat2)
 
         if self.mode == 'I':
@@ -190,6 +190,14 @@ class maskBlock(nn.Module):
     def forward(self, x):
         return self.mask_block(x)
 
+
+class handCraftUnit(nn.Module):
+    def __init__(self):
+        super(handCraftUnit, self).__init__()
+        self.conv_hand = nn.Conv2d(3, 81, kernel_size=3, stride=1, padding=1, bias=True)
+    def forward(self,one):
+        return self.conv_hand(one)
+
 class deepLidar(nn.Module):
     def __init__(self):
         super(deepLidar, self).__init__()
@@ -198,17 +206,37 @@ class deepLidar(nn.Module):
         self.normal_path = deepCompletionUnit(mode='N')
         self.mask_block_C = maskBlock()
         self.mask_block_N = maskBlock()
+        
+        ## handCraft
+        self.hand_conv = handCraftUnit() 
+        self.mask_block_H = maskBlock()
 
+    
     def forward(self, rgb, lidar, mask, stage):
         surface_normal = self.normal(rgb, lidar, mask)
         if stage == 'N':
             return None, None, None, None, surface_normal
+        if stage == 'H':
+            color_path_dense, confident_mask, cat2C = self.color_path(rgb, lidar, mask)
+            normal_path_dense, cat2N = self.normal_path(surface_normal, lidar, confident_mask)
+            
+            ones = torch.ones_like(rgb)
+            catH = self.hand_conv(ones)
+
+            color_attn = self.mask_block_C(cat2C)
+            normal_attn = self.mask_block_N(cat2N)
+            hand_attn = self.mask_block_H(catH)
+            
+            return color_path_dense, normal_path_dense, color_attn, normal_attn, hand_attn, surface_normal
 
         color_path_dense, confident_mask, cat2C = self.color_path(rgb, lidar, mask)
         normal_path_dense, cat2N = self.normal_path(surface_normal, lidar, confident_mask)
-
+        
+        
         color_attn = self.mask_block_C(cat2C)
         normal_attn = self.mask_block_N(cat2N)
-
+        
         return color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal
+        
+
 
