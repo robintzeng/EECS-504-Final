@@ -13,7 +13,7 @@ from training.utils import get_depth_and_normal
 from env import SAVED_MODEL_PATH
 
 parser = argparse.ArgumentParser(description='Depth Completion')
-parser.add_argument('-b', '--batch_size', type=int, default=16, help='batch size')
+parser.add_argument('-b', '--batch_size', type=int, default=8, help='batch size')
 parser.add_argument('-e', '--epoch', type=int, default=1000, help='number of epochs')
 parser.add_argument('-m', '--saved_model_name', type=str, default='model', help='saved_model_name')
 parser.add_argument('-cpu', '--using_cpu', action='store_true', help='use cpu')

@@ -44,7 +44,7 @@ def get_predicted_depthH(color_path_dense, normal_path_dense, color_attn, normal
     # get predicted dense depth from 2 pathways
     pred_color_path_dense = color_path_dense[:, 0, :, :] # b x 128 x 256
     pred_normal_path_dense = normal_path_dense[:, 0, :, :]
-    pred_hand_denseS = pred_hand_dense[:,0,:,:]
+    pred_hand_dense = pred_hand_dense[:,0,:,:]
 
     # get attention map of 2 pathways
     color_attn = torch.squeeze(color_attn) # b x 128 x 256
@@ -65,15 +65,16 @@ def get_predicted_depthH(color_path_dense, normal_path_dense, color_attn, normal
 
     # get predicted dense from weighted sum of 2 path way  
     
-    predicted_dense = pred_color_path_dense * color_attn + pred_normal_path_dense * normal_attn + pred_hand_denseS* hand_attn# b x 128 x 256
+    predicted_dense = pred_color_path_dense * color_attn + pred_normal_path_dense * normal_attn + pred_hand_dense* hand_attn# b x 128 x 256
     
     predicted_dense = predicted_dense.unsqueeze(1)
     pred_color_path_dense = pred_color_path_dense.unsqueeze(1) 
     pred_normal_path_dense = pred_normal_path_dense.unsqueeze(1)
+    pred_hand_dense = pred_hand_dense.unsqueeze(1)
 
 
 
-    return predicted_dense, pred_color_path_dense, pred_normal_path_dense
+    return predicted_dense, pred_color_path_dense, pred_normal_path_dense,pred_hand_dense
 
 def get_depth_and_normal(model, rgb, lidar, mask, stage):
     """Given model and input of model, get dense depth and surface normal
@@ -95,22 +96,23 @@ def get_depth_and_normal(model, rgb, lidar, mask, stage):
             
             #print(color_path_dense.shape)
 
-            fill_type = 'fast'
-            extrapolate = True
-            blur_type = 'gaussian'
+            fill_type = 'multiscale'
+            extrapolate = False
+            blur_type = 'bilateral'
 
             b,_,h,w = rgb.shape
             ### handcraft
             pred_hand_dense = torch.zeros((b,1,h,w),dtype=torch.float).to(rgb.device) 
+            
             for i in range(b):
-                pred_hand_dense[i,:,:,:] = torch.from_numpy(depth_map_utils.fill_in_fast(
-                    lidar[i,0,:,:].cpu().numpy(), extrapolate=extrapolate, blur_type=blur_type)).float()
+                tmp,_ = depth_map_utils.fill_in_multiscale(lidar[i,0,:,:].cpu().numpy(), extrapolate=extrapolate, blur_type=blur_type)
+                pred_hand_dense[i,:,:,:] = torch.from_numpy(tmp)
             
             #print(pred_hand_dense.shape)
 
             pred_hand_dense = pred_hand_dense.to(rgb.device)
             
-            predicted_dense, _, _ = get_predicted_depthH(color_path_dense, normal_path_dense, color_attn, normal_attn, hand_attn, pred_hand_dense)
+            predicted_dense, _, _, _ = get_predicted_depthH(color_path_dense, normal_path_dense, color_attn, normal_attn, hand_attn, pred_hand_dense)
         return predicted_dense, pred_surface_normal
 
 
@@ -228,8 +230,8 @@ def get_lossH(color_path_dense, normal_path_dense, color_attn, normal_attn, hand
    
 
     zero_loss = nn.MSELoss()(torch.ones(1, 1).to(gt_depth.device), torch.ones(1, 1).to(gt_depth.device))
-    loss_d, loss_c, loss_n, loss_normal, loss_hand = zero_loss, zero_loss, zero_loss, zero_loss, zero_loss
-    predicted_dense, pred_color_path_dense, pred_normal_path_dense = \
+    loss_d, loss_c, loss_n, loss_normal, loss_h = zero_loss, zero_loss, zero_loss, zero_loss, zero_loss
+    predicted_dense, pred_color_path_dense, pred_normal_path_dense, pred_hand_dense = \
                         get_predicted_depthH(color_path_dense, normal_path_dense, color_attn, normal_attn,hand_attn, pred_hand_dense)
 
     loss_d, loss_c, loss_n, loss_h = get_depth_lossH(predicted_dense, pred_color_path_dense, pred_normal_path_dense, pred_hand_dense, gt_depth)

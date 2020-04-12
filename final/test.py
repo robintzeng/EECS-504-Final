@@ -9,10 +9,12 @@ import torch.nn.functional as F
 from PIL import Image
 from training.utils import *
 from env import PREDICTED_RESULT_DIR, KITTI_DATASET_PATH
+## handcraft
+from ip_basic import depth_map_utils
 
 parser = argparse.ArgumentParser(description='Depth Completion')
-parser.add_argument('-m', '--model_path', help='loaded model path')
-parser.add_argument('-n', '--num_testing_image', type=int, default=10, 
+parser.add_argument('-m', '--model_path', help='loaded model path',default="/home/tmt/CV_final/robin/EECS-545-Final/final/saved_model/model_H_e10.tar")
+parser.add_argument('-n', '--num_testing_image', type=int, default=1000, 
                     help='The number of testing image to be runned')
 parser.add_argument('-cpu', '--using_cpu', action='store_true', help='use cpu')
 parser.add_argument('-s', '--save_fig', action='store_true', help='save predicted result or not')
@@ -39,12 +41,23 @@ def test(model, rgb, lidar, mask):
     mask = mask.to(DEVICE)
 
     with torch.no_grad():
-        color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal = model(rgb, lidar, mask, stage='A')
-
-        predicted_dense, pred_color_path_dense, pred_normal_path_dense = \
-                            get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn)
- 
+        color_path_dense, normal_path_dense, color_attn, normal_attn, hand_attn, pred_surface_normal = model(rgb, lidar, mask, stage='H')
         
+        fill_type = 'multiscale'
+        extrapolate = False
+        blur_type = 'bilateral'
+        
+        b,_,h,w = rgb.shape
+        ### handcraft
+        pred_hand_dense = torch.zeros((b,1,h,w),dtype=torch.float).to(rgb.device) 
+        for i in range(b):
+            tmp,_ = depth_map_utils.fill_in_multiscale(lidar[i,0,:,:].numpy(), extrapolate=extrapolate, blur_type=blur_type)
+            pred_hand_dense[i,:,:,:] = torch.from_numpy(tmp)
+        
+        predicted_dense, pred_color_path_dense, pred_normal_path_dense = \
+                get_predicted_depthH(color_path_dense, normal_path_dense, color_attn, normal_attn, hand_attn, pred_hand_dense)
+        
+        #print(predicted_dense.shape)
         return torch.squeeze(predicted_dense).cpu()
 
 def get_testing_img_paths():
@@ -85,23 +98,26 @@ def main():
         # read image
         print(rgb_paths[idx])
         print(lidar_paths[idx])
-        exit()
+        #exit()
         rgb = read_rgb(rgb_paths[idx]) # h x w x 3
         lidar, mask = read_lidar(lidar_paths[idx]) # h x w x 1
         gt = read_gt(gt_paths[idx]) # h x w x 1
-
+        
         # transform numpy to tensor and add batch dimension
         rgb = transformer(rgb).unsqueeze(0)
         lidar, mask = transformer(lidar).unsqueeze(0), transformer(mask).unsqueeze(0)
+        
         
         # saved file path
         fn = os.path.basename(rgb_paths[idx])
         saved_path = os.path.join(PREDICTED_RESULT_DIR, fn)
 
+        
         # run model
         pred = test(model, rgb, lidar, mask).numpy()
         pred = np.where(pred <= 0.0, 0.9, pred)
 
+        
         gt = gt.reshape(gt.shape[0], gt.shape[1])
         rmse_loss = rmse(pred, gt)*1000
 

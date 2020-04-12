@@ -43,22 +43,53 @@ def get_optimizer(model, stage):
         loss_weights = [0.3, 0.3, 0.0, 0.1]
     ## handCraft 
     elif stage == 'H':
+        
         for param in model.color_path.parameters():
             param.requires_grad = True  
         for param in model.normal.parameters():
-            param.requires_grad = False  
+            param.requires_grad = True  
         
         for param in model.mask_block_H.parameters():
             param.require_grad = True
-
+        for param in model.hand_conv.parameters():
+            param. require_grad = True
 
         optimizer = optim.Adam([{'params':model.color_path.parameters()},
                                 {'params':model.normal_path.parameters()},
+                                {'params':model.hand_conv.parameters()},
                                 {'params':model.mask_block_C.parameters()},
                                 {'params':model.mask_block_N.parameters()},
                                 {'params':model.mask_block_H.parameters()}], lr=0.001, betas=(0.9, 0.999))
+                               
 
-        loss_weights = [0.3, 0.3, 0.5, 0.1,0.1]
+
+        loss_weights = [0.3, 0.3, 0.5, 0.2,0.3]
+        
+        '''
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.color_path.parameters():
+            param.requires_grad = True
+        for param in model.normal_path.parameters():
+            param.requires_grad = True
+        for param in model.hand_conv.parameters():
+            param.require_grad = True
+
+        optimizer = optim.Adam([{'params':model.color_path.parameters()},
+                                {'params':model.hand_conv.parameters()},
+                                {'params':model.normal_path.parameters()}], lr=0.001, betas=(0.9, 0.999))
+
+        loss_weights = [0.4, 0.4, 0.3, 0.1,0.1]
+        '''
+        '''
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.normal.parameters():
+            param.requires_grad = True
+
+        optimizer = optim.Adam(model.normal.parameters(), lr=0.001, betas=(0.9, 0.999))
+        loss_weights = [0, 0, 0, 1, 0]
+        '''
     else:
         for param in model.color_path.parameters():
             param.requires_grad = True  
@@ -170,9 +201,9 @@ def train_val(model, loader, epoch, device, stage):
             else:
                 model.eval()
 
-            fill_type = 'fast'
-            extrapolate = True
-            blur_type = 'gaussian'
+            fill_type = 'multiscale'
+            extrapolate = False
+            blur_type = 'bilateral'
 
             for num_batch, (rgb, lidar, mask, gt_depth, params, gt_surface_normal, gt_normal_mask) in enumerate(pbar):
                 """
@@ -187,9 +218,9 @@ def train_val(model, loader, epoch, device, stage):
                 ### handcraft
                 pred_hand_dense = torch.zeros((b,1,h,w),dtype=torch.float).to(device) 
                 for i in range(b):
-                    pred_hand_dense[i,:,:,:] = torch.from_numpy(depth_map_utils.fill_in_fast(
-                        lidar[i,0,:,:].numpy(), extrapolate=extrapolate, blur_type=blur_type)).float()
-                
+                    tmp,_ = depth_map_utils.fill_in_multiscale(lidar[i,0,:,:].numpy(), extrapolate=extrapolate, blur_type=blur_type)
+                    pred_hand_dense[i,:,:,:] = torch.from_numpy(tmp)
+
                 pred_hand_dense = pred_hand_dense.to(device)
                 
                 #print(pred_hand_dense.device)
