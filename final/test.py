@@ -51,10 +51,10 @@ def test(model, rgb, lidar, mask):
         ### handcraft
         pred_hand_dense = torch.zeros((b,1,h,w),dtype=torch.float).to(rgb.device) 
         for i in range(b):
-            tmp,_ = depth_map_utils.fill_in_multiscale(lidar[i,0,:,:].numpy(), extrapolate=extrapolate, blur_type=blur_type)
+            tmp,_ = depth_map_utils.fill_in_multiscale(lidar[i,0,:,:].cpu().numpy(), extrapolate=extrapolate, blur_type=blur_type)
             pred_hand_dense[i,:,:,:] = torch.from_numpy(tmp)
         
-        predicted_dense, pred_color_path_dense, pred_normal_path_dense = \
+        predicted_dense, pred_color_path_dense, pred_normal_path_dense,pred_hand_dense = \
                 get_predicted_depthH(color_path_dense, normal_path_dense, color_attn, normal_attn, hand_attn, pred_hand_dense)
         
         #print(predicted_dense.shape)

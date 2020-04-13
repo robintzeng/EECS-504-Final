@@ -47,7 +47,7 @@ def get_optimizer(model, stage):
         for param in model.color_path.parameters():
             param.requires_grad = True  
         for param in model.normal.parameters():
-            param.requires_grad = True  
+            param.requires_grad = False  
         
         for param in model.mask_block_H.parameters():
             param.require_grad = True
@@ -63,7 +63,7 @@ def get_optimizer(model, stage):
                                
 
 
-        loss_weights = [0.3, 0.3, 0.5, 0.2,0.3]
+        loss_weights = [0.3, 0.3, 0.5, 0.1,0.15]
         
         '''
         for param in model.parameters():
@@ -79,7 +79,7 @@ def get_optimizer(model, stage):
                                 {'params':model.hand_conv.parameters()},
                                 {'params':model.normal_path.parameters()}], lr=0.001, betas=(0.9, 0.999))
 
-        loss_weights = [0.4, 0.4, 0.3, 0.1,0.1]
+        loss_weights = [0.3, 0.3, 0.0, 0.1,0.1]
         '''
         '''
         for param in model.parameters():
