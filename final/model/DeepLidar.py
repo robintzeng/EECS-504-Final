@@ -193,22 +193,18 @@ class maskBlock(nn.Module):
 class deepLidar(nn.Module):
     def __init__(self):
         super(deepLidar, self).__init__()
-        self.normal = deepCompletionUnit(mode='I')
         self.color_path = deepCompletionUnit(mode='C')
-        self.normal_path = deepCompletionUnit(mode='N')
+        self.normal_path = deepCompletionUnit(mode='C')
         self.mask_block_C = maskBlock()
         self.mask_block_N = maskBlock()
 
-    def forward(self, rgb, lidar, mask, stage):
-        surface_normal = self.normal(rgb, lidar, mask)
-        if stage == 'N':
-            return None, None, None, None, surface_normal
+    def forward(self, rgb, lidar, mask, lab):
 
-        color_path_dense, confident_mask, cat2C = self.color_path(rgb, lidar, mask)
-        normal_path_dense, cat2N = self.normal_path(surface_normal, lidar, confident_mask)
+        color_path_dense, confident_mask_lab, cat2C = self.color_path(rgb, lidar, mask)
+        lab_path_dense, confident_mask_lab, cat2N = self.normal_path(lab, lidar, mask)
 
         color_attn = self.mask_block_C(cat2C)
-        normal_attn = self.mask_block_N(cat2N)
+        lab_attn = self.mask_block_N(cat2N)
 
-        return color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal
+        return color_path_dense, lab_path_dense, color_attn, lab_attn
 

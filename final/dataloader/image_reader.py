@@ -16,7 +16,16 @@ def read_rgb(path):
     """
     img = io.imread(path)
     return img.astype('float32')
-    
+
+def read_lab(path):
+    """Read rgb image as np array
+
+    Returns:
+    img: numpy array with shape (h, w, c) = (375 x 1242 x 3)
+    """
+    img = np.load(path)
+    return img.astype('float32')
+
 def read_lidar(path):
     """Read lidar image and generate mask
 

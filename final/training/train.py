@@ -51,20 +51,23 @@ def get_optimizer(model, stage):
                                 {'params':model.normal_path.parameters()},
                                 {'params':model.mask_block_C.parameters()},
                                 {'params':model.mask_block_N.parameters()}], lr=0.001, betas=(0.9, 0.999))
-
+ 
         loss_weights = [0.3, 0.3, 0.5, 0.1]
 
     return model, optimizer, loss_weights
 
 
 
-def train_val(model, loader, epoch, device, stage):
+def train_val(model, loader, epoch, device):
     """Train and validate the model
 
     Returns: training and validation loss
     """
 
-    model, optimizer, loss_weights = get_optimizer(model, stage)
+    #model, optimizer, loss_weights = get_optimizer(model)
+    optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999))
+    loss_weights = [0.3, 0.3, 0.5]
+
     train_loss, val_loss = [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]
 
     for phase in ['train', 'val']:
@@ -78,7 +81,7 @@ def train_val(model, loader, epoch, device, stage):
         else:
             model.eval()
 
-        for num_batch, (rgb, lidar, mask, gt_depth, params, gt_surface_normal, gt_normal_mask) in enumerate(pbar):
+        for num_batch, (rgb, lidar, mask, gt_depth, lab) in enumerate(pbar):
             """
             rgb: b x 3 x 128 x 256
             lidar: b x 1 x 128 x 256
@@ -86,32 +89,29 @@ def train_val(model, loader, epoch, device, stage):
             gt: b x 1 x 128 x 256
             params: b x 128 x 256 x 3
             """
-            rgb, lidar, mask = rgb.to(device), lidar.to(device), mask.to(device)
-            gt_depth, params = gt_depth.to(device), params.to(device)
-            gt_surface_normal, gt_normal_mask = gt_surface_normal.to(device), gt_normal_mask.to(device)
+            rgb, lidar, mask, lab = rgb.to(device), lidar.to(device), mask.to(device), lab.to(device)
+            gt_depth = gt_depth.to(device)
 
             if phase == 'train':
-                color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, stage)
+                color_path_dense, lab_path_dense, color_attn, lab_attn = model(rgb, lidar, mask, lab)
             else:
                 with torch.no_grad():
-                    color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, stage)
+                    color_path_dense, lab_path_dense, color_attn, lab_attn = model(rgb, lidar, mask, lab)
             # color_path_dense: b x 2 x 128 x 256
             # normal_path_dense: b x 2 x 128 x 256
             # color_mask: b x 1 x 128 x 256
             # normal_mask: b x 1 x 128 x 256
             # surface_normal: b x 3 x 128 x 256
 
-            loss_c, loss_n, loss_d, loss_normal = get_loss(color_path_dense, normal_path_dense, color_attn,\
-                                                            normal_attn, pred_surface_normal, stage,\
-                                                            gt_depth, params, gt_surface_normal, gt_normal_mask)
+            loss_c, loss_n, loss_d = get_loss(color_path_dense, lab_path_dense, color_attn, lab_attn,\
+                                                            gt_depth)
 
-            loss = loss_weights[0] * loss_c + loss_weights[1] * loss_n + loss_weights[2] * loss_d + loss_weights[3] * loss_normal
+            loss = loss_weights[0] * loss_c + loss_weights[1] * loss_n + loss_weights[2] * loss_d
 
             total_loss += loss.item()
             total_loss_d += loss_d.item()
             total_loss_c += loss_c.item()
             total_loss_n += loss_n.item()
-            total_loss_normal += loss_normal.item()
 
             total_pic += rgb.size(0)
 
@@ -120,7 +120,6 @@ def train_val(model, loader, epoch, device, stage):
                 train_loss[1] = total_loss_d/total_pic
                 train_loss[2] = total_loss_c/total_pic
                 train_loss[3] = total_loss_n/total_pic
-                train_loss[4] = total_loss_normal/total_pic
 
                 loss.backward()
                 optimizer.step()
@@ -131,11 +130,10 @@ def train_val(model, loader, epoch, device, stage):
                 val_loss[1] = total_loss_d/total_pic
                 val_loss[2] = total_loss_c/total_pic
                 val_loss[3] = total_loss_n/total_pic
-                val_loss[4] = total_loss_normal/total_pic
 
-            pbar.set_description('[{}] Epoch: {}; loss: {:.4f}; loss_d: {:.4f}, loss_c: {:.4f}, loss_n: {:.4f}, loss_normal: {:.4f}'.\
+            pbar.set_description('[{}] Epoch: {}; loss: {:.4f}; loss_d: {:.4f}, loss_c: {:.4f}, loss_n: {:.4f}'.\
                 format(phase.upper(), epoch + 1, total_loss/total_pic , total_loss_d/total_pic, \
-                total_loss_c/total_pic, total_loss_n/total_pic, total_loss_normal/total_pic))
+                total_loss_c/total_pic, total_loss_n/total_pic))
 
     return train_loss, val_loss
 

@@ -24,14 +24,14 @@ args = parser.parse_args()
 DEVICE = 'cuda' if torch.cuda.is_available() and not args.using_cpu else 'cpu'
 
 
-def main_train(model, stage):
+def main_train(model):
     # setting tensorboard
-    tensorboard_path = 'runs/{}_{}'.format(stage, args.saved_model_name)
+    tensorboard_path = 'runs/{}'.format(args.saved_model_name)
     tb_writer = TensorboardWriter(tensorboard_path)
-    
+
     # get one testing image, used to visualize result in each eopch 
-    testing_rgb, testing_lidar, testing_mask = tb_writer.get_testing_img()
-    testing_rgb, testing_lidar, testing_mask = testing_rgb.to(DEVICE), testing_lidar.to(DEVICE), testing_mask.to(DEVICE)
+    testing_rgb, testing_lidar, testing_mask, testing_lab = tb_writer.get_testing_img()
+    testing_rgb, testing_lidar, testing_mask, testing_lab = testing_rgb.to(DEVICE), testing_lidar.to(DEVICE), testing_mask.to(DEVICE), testing_lab.to(DEVICE)
 
     # setting early stop, if result doen't improve more than PATIENCE times, stop iteration
     early_stop = EarlyStop(patience=10, mode='min')
@@ -42,8 +42,8 @@ def main_train(model, stage):
     
 
     for epoch in range(args.epoch):
-        saved_model_path = os.path.join(SAVED_MODEL_PATH, "{}_{}_e{}".format(args.saved_model_name, stage, epoch+1))
-        train_losses, val_losses = train_val(model, loader, epoch, DEVICE, stage)
+        saved_model_path = os.path.join(SAVED_MODEL_PATH, "{}_e{}".format(args.saved_model_name, epoch+1))
+        train_losses, val_losses = train_val(model, loader, epoch, DEVICE)
 
         # predict dense and surface normal using testing image and write them to tensorboard
         predicted_dense, pred_surface_normal = get_depth_and_normal(model, testing_rgb, testing_lidar, testing_mask)
@@ -65,9 +65,8 @@ def main():
         model.load_state_dict(state_dict)
         print('Loss of loaded model: {:.4f}'.format(dic['val_loss']))
 
-    #main_train(model, 'N')
-    #main_train(model, 'D')
-    main_train(model, 'A')
+
+    main_train(model)
 
 
 if __name__ == '__main__':

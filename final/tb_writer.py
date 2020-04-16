@@ -3,7 +3,7 @@ from training.utils import normal_to_0_1
 from tensorboardX import SummaryWriter
 import torch
 import numpy as np
-
+import cv2
 class TensorboardWriter():
     def __init__(self, path):
         self.writer = SummaryWriter(path)
@@ -18,16 +18,14 @@ class TensorboardWriter():
         mask: mask input of the model
         """
         loader = get_loader('val', shuffle=False, num_data=1, crop=False)
-        for rgb, lidar, mask, gt_depth, params, gt_surface_normal, gt_normal_mask in loader:
+        for rgb, lidar, mask, gt_depth, lab in loader:
             self.writer.add_image('RGB input', rgb[0] / 255.0, 1)
             self.writer.add_image('lidar input', lidar[0], 1)
             self.writer.add_image('GroundTruth depth', normal_to_0_1(gt_depth[0]), 1)
-            self.writer.add_image('GroundTruth surface normal', normal_to_0_1(gt_surface_normal[0]), 1)
-            
-            self.gt_mask = torch.tensor(np.where(gt_depth.numpy() > 0.0, 1.0, 0.0)) # b x 1 x w x h
-            self.gt_normal_mask = gt_normal_mask # b x 1 x w x h
 
-            return rgb, lidar, mask
+            
+
+            return rgb, lidar, mask, lab
 
     def tensorboard_write(self, epoch, train_losses, val_losses, predicted_dense, pred_surface_normal):
         """Write every epoch result on the tensorboard
