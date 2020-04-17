@@ -194,14 +194,14 @@ class deepLidar(nn.Module):
     def __init__(self):
         super(deepLidar, self).__init__()
         self.color_path = deepCompletionUnit(mode='C')
-        self.normal_path = deepCompletionUnit(mode='C')
+        self.normal_path = deepCompletionUnit(mode='N')
         self.mask_block_C = maskBlock()
         self.mask_block_N = maskBlock()
 
     def forward(self, rgb, lidar, mask, lab):
 
-        color_path_dense, confident_mask_lab, cat2C = self.color_path(rgb, lidar, mask)
-        lab_path_dense, confident_mask_lab, cat2N = self.normal_path(lab, lidar, mask)
+        color_path_dense, confident_mask, cat2C = self.color_path(rgb, lidar, mask)
+        lab_path_dense, cat2N = self.normal_path(lab, lidar, confident_mask)
 
         color_attn = self.mask_block_C(cat2C)
         lab_attn = self.mask_block_N(cat2N)
