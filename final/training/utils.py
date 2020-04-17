@@ -34,7 +34,7 @@ def get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_
 
     return predicted_dense, pred_color_path_dense, pred_normal_path_dense
 
-def get_depth_and_normal(model, rgb, lidar, mask):
+def get_depth_and_normal(model, rgb, lidar, mask, lab):
     """Given model and input of model, get dense depth and surface normal
 
     Returns:
@@ -43,9 +43,9 @@ def get_depth_and_normal(model, rgb, lidar, mask):
     """
     model.eval()
     with torch.no_grad():
-        color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, 'A')
-        predicted_dense, _, _ = get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn)
-    return predicted_dense, pred_surface_normal
+        color_path_dense, lab_path_dense, color_attn, lab_attn = model(rgb, lidar, mask, lab)
+        predicted_dense, _, _ = get_predicted_depth(color_path_dense, lab_path_dense, color_attn, lab_attn)
+    return predicted_dense
 
 
 

@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from PIL import Image
 from training.utils import *
 from env import PREDICTED_RESULT_DIR, KITTI_DATASET_PATH
+from skimage import color
 
 parser = argparse.ArgumentParser(description='Depth Completion')
 parser.add_argument('-m', '--model_path', help='loaded model path')
@@ -30,21 +31,20 @@ def rmse(pred, gt):
     error = np.sqrt(np.mean(dif**2))
     return error   
 
-def test(model, rgb, lidar, mask):
+def test(model, rgb, lidar, mask, lab):
     model.eval()
 
     model = model.to(DEVICE)
     rgb = rgb.to(DEVICE)
+    lab = lab.to(DEVICE)
     lidar = lidar.to(DEVICE)
     mask = mask.to(DEVICE)
-    print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
     with torch.no_grad():
-        color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal = model(rgb, lidar, mask, stage='A')
+        color_path_dense, lab_path_dense, color_attn, lab_attn = model(rgb, lidar, mask, lab)
 
-        predicted_dense, pred_color_path_dense, pred_normal_path_dense = \
-                            get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn)
- 
+        predicted_dense, _, _ = get_predicted_depth(color_path_dense, lab_path_dense, color_attn, lab_attn)
+
         
         return torch.squeeze(predicted_dense).cpu()
 
@@ -76,6 +76,7 @@ def main():
     state_dict = dic["state_dict"]
     model.load_state_dict(state_dict)
     print('Loss of loaded model: {:.4f}'.format(dic['val_loss']))
+    print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
 
     transformer = image_transforms()
@@ -85,11 +86,12 @@ def main():
     for idx in pbar:
         # read image
         rgb = read_rgb(rgb_paths[idx]) # h x w x 3
+        lab = color.rgb2lab(rgb).astype('float32')
         lidar, mask = read_lidar(lidar_paths[idx]) # h x w x 1
         gt = read_gt(gt_paths[idx]) # h x w x 1
 
         # transform numpy to tensor and add batch dimension
-        rgb = transformer(rgb).unsqueeze(0)
+        rgb, lab = transformer(rgb).unsqueeze(0), transformer(lab).unsqueeze(0)
         lidar, mask = transformer(lidar).unsqueeze(0), transformer(mask).unsqueeze(0)
         
         # saved file path
@@ -97,7 +99,7 @@ def main():
         saved_path = os.path.join(PREDICTED_RESULT_DIR, fn)
 
         # run model
-        pred = test(model, rgb, lidar, mask).numpy()
+        pred = test(model, rgb, lidar, mask, lab).numpy()
         pred = np.where(pred <= 0.0, 0.9, pred)
 
         gt = gt.reshape(gt.shape[0], gt.shape[1])
