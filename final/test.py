@@ -86,7 +86,7 @@ def main():
     for idx in pbar:
         # read image
         rgb = read_rgb(rgb_paths[idx]) # h x w x 3
-        lab = color.rgb2lab(rgb).astype('float32')
+        lab = np.int8(color.rgb2lab(rgb)).astype('float32')
         lidar, mask = read_lidar(lidar_paths[idx]) # h x w x 1
         gt = read_gt(gt_paths[idx]) # h x w x 1
 
