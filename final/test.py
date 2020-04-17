@@ -43,7 +43,7 @@ def test(model, rgb, lidar, mask, lab):
     with torch.no_grad():
         color_path_dense, lab_path_dense, color_attn, lab_attn = model(rgb, lidar, mask, lab)
 
-        predicted_dense, _, _ = get_predicted_depth(color_path_dense, lab_path_dense, color_attn, lab_attn)
+        predicted_dense, pred_color_path_dense, pred_normal_path_dense = get_predicted_depth(color_path_dense, lab_path_dense, color_attn, lab_attn)
 
         
         return torch.squeeze(predicted_dense).cpu()
@@ -76,7 +76,7 @@ def main():
     state_dict = dic["state_dict"]
     model.load_state_dict(state_dict)
     print('Loss of loaded model: {:.4f}'.format(dic['val_loss']))
-    print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
+    print('The number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
 
     transformer = image_transforms()
