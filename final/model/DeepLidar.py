@@ -198,13 +198,13 @@ class deepLidar(nn.Module):
         self.mask_block_C = maskBlock()
         self.mask_block_N = maskBlock()
 
-    def forward(self, rgb, lidar, mask, lab):
+    def forward(self, rgb, lidar, mask, gt_normal):
 
         color_path_dense, confident_mask, cat2C = self.color_path(rgb, lidar, mask)
-        lab_path_dense, cat2N = self.normal_path(lab, lidar, confident_mask)
+        normal_path_dense, cat2N = self.normal_path(gt_normal, lidar, confident_mask)
 
         color_attn = self.mask_block_C(cat2C)
-        lab_attn = self.mask_block_N(cat2N)
+        normal_attn = self.mask_block_N(cat2N)
 
-        return color_path_dense, lab_path_dense, color_attn, lab_attn
+        return color_path_dense, normal_path_dense, color_attn, normal_attn
 

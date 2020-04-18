@@ -81,7 +81,7 @@ def train_val(model, loader, epoch, device):
         else:
             model.eval()
 
-        for num_batch, (rgb, lidar, mask, gt_depth, lab) in enumerate(pbar):
+        for num_batch, (rgb, lidar, mask, gt_depth, gt_normal) in enumerate(pbar):
             """
             rgb: b x 3 x 128 x 256
             lidar: b x 1 x 128 x 256
@@ -89,21 +89,21 @@ def train_val(model, loader, epoch, device):
             gt: b x 1 x 128 x 256
             params: b x 128 x 256 x 3
             """
-            rgb, lidar, mask, lab = rgb.to(device), lidar.to(device), mask.to(device), lab.to(device)
+            rgb, lidar, mask, gt_normal = rgb.to(device), lidar.to(device), mask.to(device), gt_normal.to(device)
             gt_depth = gt_depth.to(device)
 
             if phase == 'train':
-                color_path_dense, lab_path_dense, color_attn, lab_attn = model(rgb, lidar, mask, lab)
+                color_path_dense, normal_path_dense, color_attn, normal_attn = model(rgb, lidar, mask, gt_normal)
             else:
                 with torch.no_grad():
-                    color_path_dense, lab_path_dense, color_attn, lab_attn = model(rgb, lidar, mask, lab)
+                    color_path_dense, normal_path_dense, color_attn, normal_attn = model(rgb, lidar, mask, gt_normal)
             # color_path_dense: b x 2 x 128 x 256
             # normal_path_dense: b x 2 x 128 x 256
             # color_mask: b x 1 x 128 x 256
             # normal_mask: b x 1 x 128 x 256
             # surface_normal: b x 3 x 128 x 256
 
-            loss_c, loss_n, loss_d = get_loss(color_path_dense, lab_path_dense, color_attn, lab_attn,\
+            loss_c, loss_n, loss_d = get_loss(color_path_dense, normal_path_dense, color_attn, normal_attn,\
                                                             gt_depth)
 
             loss = loss_weights[0] * loss_c + loss_weights[1] * loss_n + loss_weights[2] * loss_d
