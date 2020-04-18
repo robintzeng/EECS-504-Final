@@ -37,8 +37,8 @@ def main_train(model):
     early_stop = EarlyStop(patience=10, mode='min')
 
     # get data loader
-    loader = {'train': get_loader('train', num_data=5), \
-              'val': get_loader('val', shuffle=False, num_data=5)}
+    loader = {'train': get_loader('train', num_data=args.num_data), \
+              'val': get_loader('val', shuffle=False, num_data=1000)}
     
 
     for epoch in range(args.epoch):
