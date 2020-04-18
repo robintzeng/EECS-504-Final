@@ -4,11 +4,11 @@ from model.module import *
 
 
 class deepCompletionUnit(nn.Module):
-    def __init__(self, mode):
+    def __init__(self, mode, rgb_inchannels):
         super(deepCompletionUnit, self).__init__()
         assert mode in {'N', 'C', 'I'}
         self.mode = mode
-
+        #rgb_inchannels = 4
         #s_filter = [32, 99, 195, 387, 515, 512]
         #r_filter = [32, 64, 128, 256, 256, 512]
         r_filter = [32, 64, 128, 128, 256, 256]
@@ -35,7 +35,7 @@ class deepCompletionUnit(nn.Module):
             self.conv_sparse5 = ResBlock(channels_in=s_filter[3], num_filters=s_filter[4], stride=2)
             self.conv_sparse6 = ResBlock(channels_in=s_filter[4], num_filters=s_filter[5], stride=2)
 
-            self.conv_rgb1 = ResBlock(channels_in=3, num_filters=r_filter[0], stride=1)
+            self.conv_rgb1 = ResBlock(channels_in=rgb_inchannels, num_filters=r_filter[0], stride=1)
             self.conv_rgb2 = ResBlock(channels_in=r_filter[0], num_filters=r_filter[1], stride=2)
             self.conv_rgb3 = ResBlock(channels_in=r_filter[1], num_filters=r_filter[2], stride=2)
             self.conv_rgb3_1 = ResBlock(channels_in=r_filter[2], num_filters=r_filter[2], stride=1)
@@ -67,7 +67,7 @@ class deepCompletionUnit(nn.Module):
             self.conv_sparse5 = ResBlock(channels_in=s_filter[3], num_filters=s_filter[4], stride=2)
             self.conv_sparse6 = ResBlock(channels_in=s_filter[4], num_filters=s_filter[5], stride=2)
         
-            self.conv_rgb1 = ResBlock(channels_in=3, num_filters=r_filter[0], stride=1)
+            self.conv_rgb1 = ResBlock(channels_in=rgb_inchannels, num_filters=r_filter[0], stride=1)
             self.conv_rgb2 = ResBlock(channels_in=r_filter[0], num_filters=r_filter[1], stride=1)
             self.conv_rgb3 = ResBlock(channels_in=r_filter[1], num_filters=r_filter[2], stride=2)
             self.conv_rgb3_1 = ResBlock(channels_in=r_filter[2], num_filters=r_filter[2], stride=1)
@@ -104,7 +104,7 @@ class deepCompletionUnit(nn.Module):
             self.conv_sparse5 = ResBlock(channels_in=s_filter[3], num_filters=s_filter[4], stride=2)
             self.conv_sparse6 = ResBlock(channels_in=s_filter[4], num_filters=s_filter[5], stride=2)
         
-            self.conv_rgb1 = ResBlock(channels_in=3, num_filters=r_filter[0], stride=1)
+            self.conv_rgb1 = ResBlock(channels_in=rgb_inchannels, num_filters=r_filter[0], stride=1)
             self.conv_rgb2 = ResBlock(channels_in=r_filter[0], num_filters=r_filter[1], stride=1)
             self.conv_rgb3 = ResBlock(channels_in=r_filter[1], num_filters=r_filter[2], stride=2)
             self.conv_rgb3_1 = ResBlock(channels_in=r_filter[2], num_filters=r_filter[2], stride=1)
@@ -193,13 +193,15 @@ class maskBlock(nn.Module):
 class deepLidar(nn.Module):
     def __init__(self):
         super(deepLidar, self).__init__()
-        self.color_path = deepCompletionUnit(mode='C')
-        self.normal_path = deepCompletionUnit(mode='N')
+        self.color_path = deepCompletionUnit(mode='C', rgb_inchannels=4)
+        self.normal_path = deepCompletionUnit(mode='N', rgb_inchannels=3)
         self.mask_block_C = maskBlock()
         self.mask_block_N = maskBlock()
 
     def forward(self, rgb, lidar, mask, lab):
-
+        L = lab[:, 0, :, :].unsqueeze(1)
+        rgb = torch.cat((rgb, L), dim=1)
+    
         color_path_dense, confident_mask, cat2C = self.color_path(rgb, lidar, mask)
         lab_path_dense, cat2N = self.normal_path(lab, lidar, confident_mask)
 
