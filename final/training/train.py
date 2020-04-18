@@ -89,14 +89,14 @@ def train_val(model, loader, epoch, device):
             gt: b x 1 x 128 x 256
             params: b x 128 x 256 x 3
             """
-            rgb, lidar, mask, gt_normal = rgb.to(device), lidar.to(device), mask.to(device), gt_normal.to(device)
+            rgb, lidar = rgb.to(device), lidar.to(device)
             gt_depth = gt_depth.to(device)
 
             if phase == 'train':
-                color_path_dense, normal_path_dense, color_attn, normal_attn = model(rgb, lidar, mask, gt_normal)
+                predicted_dense = model(rgb, lidar)
             else:
                 with torch.no_grad():
-                    color_path_dense, normal_path_dense, color_attn, normal_attn = model(rgb, lidar, mask, gt_normal)
+                    predicted_dense = model(rgb, lidar)
             # color_path_dense: b x 2 x 128 x 256
             # normal_path_dense: b x 2 x 128 x 256
             # color_mask: b x 1 x 128 x 256

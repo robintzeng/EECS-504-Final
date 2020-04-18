@@ -2,6 +2,40 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+class FuseBlock(nn.Module):
+
+    def __init__(self, in_channel, C):
+        super(FuseBlock, self).__init__()
+
+        self.conv1 = nn.Conv2d(in_channel, C, kernel_size=3, stride=2, padding=1, bias=True)
+        self.bn1 = nn.BatchNorm2d(C)
+
+        self.conv2 = nn.Conv2d(C, C, kernel_size=3, stride=1, padding=1, bias=True)
+        self.bn2 = nn.BatchNorm2d(C)
+
+        self.conv3 = nn.Conv2d(in_channel, C, kernel_size=3, stride=1, padding=1, bias=True)
+        self.bn3 = nn.BatchNorm2d(C)
+
+        self.conv4 = nn.Conv2d(C, in_channel, kernel_size=3, stride=1, padding=1, bias=True)
+        self.bn4 = nn.BatchNorm2d(in_channel)
+
+        self.relu = nn.ReLU(inplace=True)
+    def forward(self, x):
+        b, c, w, h = x.size()
+
+        # first branch
+        x_1 = self.relu(self.bn3(self.conv3(x)))
+
+        # second branch
+        x_2 = self.relu(self.bn1(self.conv1(x)))
+        x_2 = self.relu(self.bn2(self.conv2(x_2)))
+        x_2 = F.interpolate(x_2, (w, h), mode='bilinear', align_corners=True)
+
+        x_3 = x_1 + x_2
+        x_4 = self.relu(self.bn4(self.conv4(x_3))) + x
+        return x_4
+
 class ResBlock(nn.Module):
     
     def __init__(self, num_filters, channels_in=None, stride=1, res_option='A', use_dropout=False):

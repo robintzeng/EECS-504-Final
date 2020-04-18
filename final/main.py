@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from dataloader.dataloader import get_loader
 from model.DeepLidar import deepLidar
+from model.FuseNet import FuseNet
 from tb_writer import TensorboardWriter
 from training.train import EarlyStop, train_val
 from training.utils import get_depth_and_normal
@@ -58,7 +59,7 @@ def main_train(model):
 
 
 def main():
-    model = deepLidar().to(DEVICE)
+    model = FuseNet(12).to(DEVICE)
     if args.load_model:
         dic = torch.load(args.load_model)
         state_dict = dic["state_dict"]
