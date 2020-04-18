@@ -34,7 +34,7 @@ def get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_
 
     return predicted_dense, pred_color_path_dense, pred_normal_path_dense
 
-def get_depth_and_normal(model, rgb, lidar, mask, lab):
+def get_depth_and_normal(model, rgb, lidar):
     """Given model and input of model, get dense depth and surface normal
 
     Returns:
@@ -43,8 +43,7 @@ def get_depth_and_normal(model, rgb, lidar, mask, lab):
     """
     model.eval()
     with torch.no_grad():
-        color_path_dense, lab_path_dense, color_attn, lab_attn = model(rgb, lidar, mask, lab)
-        predicted_dense, _, _ = get_predicted_depth(color_path_dense, lab_path_dense, color_attn, lab_attn)
+        predicted_dense = model(rgb, lidar)
     return predicted_dense
 
 
@@ -80,7 +79,7 @@ def normal_loss(pred_normal, gt_normal, gt_normal_mask):
 
 
 
-def get_depth_loss(dense, c_dense, n_dense, gt):
+def get_depth_loss(dense, gt):
     """
     dense: b x 1 x 128 x 256
     c_dense: b x 1 x 128 x 256
@@ -92,38 +91,20 @@ def get_depth_loss(dense, c_dense, n_dense, gt):
     valid_mask = (gt > 0.0).detach() # b x 1 x 128 x 256
 
     gt = gt[valid_mask]
-    dense, c_dense, n_dense = dense[valid_mask], c_dense[valid_mask], n_dense[valid_mask]
+    dense = dense[valid_mask]
 
     criterion = nn.MSELoss()
-    loss_d = torch.sqrt(criterion(dense, gt))
-    loss_c = torch.sqrt(criterion(c_dense, gt))
-    loss_n = torch.sqrt(criterion(n_dense, gt))
+    loss = torch.sqrt(criterion(dense, gt))
+
     
-    return loss_d, loss_c, loss_n
+    return loss
 
 
 
 
-def get_loss(color_path_dense, lab_path_dense, color_attn, lab_attn, gt_depth):
-
-    zero_loss = nn.MSELoss()(torch.ones(1, 1).to(gt_depth.device), torch.ones(1, 1).to(gt_depth.device))
-    loss_c, loss_l, loss_d = zero_loss, zero_loss, zero_loss
+def get_loss(predicted_dense, gt_depth):
 
 
-    predicted_dense, pred_color_path_dense, pred_normal_path_dense = \
-                        get_predicted_depth(color_path_dense, lab_path_dense, color_attn, lab_attn)
+    loss = get_depth_loss(predicted_dense, gt_depth)
 
-    # normalize surface normal
-    #b, c, h, w = pred_surface_normal.size()
-    #pred_surface_normal = pred_surface_normal.permute(0, 2, 3, 1).contiguous().view(-1, c)
-    #pred_surface_normal = F.normalize(pred_surface_normal, p=2, dim=1) # perform Lp normalization over specific dimension
-    #pred_surface_normal = pred_surface_normal.view(b, h, w, c)
-    ## TODO
-    #output_normal = torch.zeros_like(pred_surface_normal)
-    #output_normal[:, :, :, 0] = -pred_surface_normal[:, :, :, 0]
-    #output_normal[:, :, :, 1] = -pred_surface_normal[:, :, :, 2]
-    #output_normal[:, :, :, 2] = -pred_surface_normal[:, :, :, 1]
-
-    loss_d, loss_c, loss_n = get_depth_loss(predicted_dense, pred_color_path_dense, pred_normal_path_dense, gt_depth)
-
-    return loss_c, loss_n, loss_d
+    return loss

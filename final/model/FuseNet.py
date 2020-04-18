@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from module import FuseBlock
+from model.module import FuseBlock
 class FuseNet(nn.Module):
     def __init__(self, N):
         # N: the number of fuseblock

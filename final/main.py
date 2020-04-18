@@ -38,8 +38,8 @@ def main_train(model):
     early_stop = EarlyStop(patience=10, mode='min')
 
     # get data loader
-    loader = {'train': get_loader('train', num_data=args.num_data), \
-              'val': get_loader('val', shuffle=False, num_data=1000)}
+    loader = {'train': get_loader('train', num_data=2), \
+              'val': get_loader('val', shuffle=False, num_data=2)}
     
 
     for epoch in range(args.epoch):
@@ -47,7 +47,7 @@ def main_train(model):
         train_losses, val_losses = train_val(model, loader, epoch, DEVICE)
 
         # predict dense and surface normal using testing image and write them to tensorboard
-        predicted_dense = get_depth_and_normal(model, testing_rgb, testing_lidar, testing_mask, testing_normal)
+        predicted_dense = get_depth_and_normal(model, testing_rgb, testing_lidar)
         tb_writer.tensorboard_write(epoch, train_losses, val_losses, predicted_dense)
 
         if early_stop.stop(val_losses[0], model, epoch+1, saved_model_path):
