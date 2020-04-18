@@ -18,7 +18,7 @@ class TensorboardWriter():
         mask: mask input of the model
         """
         loader = get_loader('val', shuffle=False, num_data=1, crop=False)
-        for rgb, lidar, mask, gt_depth, gt_surface_normal in loader:
+        for rgb, lidar, mask, gt_depth, gt_surface_normal, lab in loader:
             self.writer.add_image('RGB input', rgb[0] / 255.0, 1)
             self.writer.add_image('lidar input', lidar[0], 1)
             self.writer.add_image('GroundTruth depth', normal_to_0_1(gt_depth[0]), 1)
@@ -28,7 +28,7 @@ class TensorboardWriter():
             #self.gt_normal_mask = gt_normal_mask # b x 1 x w x h
 
 
-            return rgb, lidar, mask, gt_surface_normal
+            return rgb, lidar, mask, gt_surface_normal, lab
 
     def tensorboard_write(self, epoch, train_losses, val_losses, predicted_dense):
         """Write every epoch result on the tensorboard

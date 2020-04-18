@@ -10,7 +10,7 @@ class FuseNet(nn.Module):
         self.conv1 = nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1, bias=True)
         self.conv2 = nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1, bias=True)
 
-        self.conv3 = nn.Conv2d(4, 32, kernel_size=3, stride=2, padding=1, bias=True)
+        self.conv3 = nn.Conv2d(5, 32, kernel_size=3, stride=2, padding=1, bias=True)
         self.conv4 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1, bias=True)
 
         self.conv5 = nn.Conv2d(48, 32, kernel_size=3, stride=1, padding=1, bias=True)
@@ -30,8 +30,11 @@ class FuseNet(nn.Module):
         self.block_layer = nn.Sequential(*block_layer)
 
 
-    def forward(self, rgb, lidar):
+    def forward(self, rgb, lidar, lab):
         b, c, w, h = rgb.size()
+
+        L = lab[:, 0, :, :].unsqueeze(1)
+        rgb = torch.cat((rgb, L), dim=1)
 
         l1 = self.relu(self.bn1(self.conv1(lidar)))
         l2 = self.relu(self.bn2(self.conv2(l1)))

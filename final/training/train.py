@@ -81,7 +81,7 @@ def train_val(model, loader, epoch, device):
         else:
             model.eval()
 
-        for num_batch, (rgb, lidar, mask, gt_depth, gt_normal) in enumerate(pbar):
+        for num_batch, (rgb, lidar, mask, gt_depth, gt_normal, lab) in enumerate(pbar):
             """
             rgb: b x 3 x 128 x 256
             lidar: b x 1 x 128 x 256
@@ -91,12 +91,13 @@ def train_val(model, loader, epoch, device):
             """
             rgb, lidar = rgb.to(device), lidar.to(device)
             gt_depth = gt_depth.to(device)
+            lab = lab.to(device)
 
             if phase == 'train':
-                predicted_dense = model(rgb, lidar)
+                predicted_dense = model(rgb, lidar, lab)
             else:
                 with torch.no_grad():
-                    predicted_dense = model(rgb, lidar)
+                    predicted_dense = model(rgb, lidar, lab)
             # color_path_dense: b x 2 x 128 x 256
             # normal_path_dense: b x 2 x 128 x 256
             # color_mask: b x 1 x 128 x 256
