@@ -10,6 +10,7 @@ from PIL import Image
 from training.utils import *
 from env import PREDICTED_RESULT_DIR, KITTI_DATASET_PATH
 from skimage import color
+from model.FuseNet import FuseNet
 
 parser = argparse.ArgumentParser(description='Depth Completion')
 parser.add_argument('-m', '--model_path', help='loaded model path')
@@ -31,19 +32,16 @@ def rmse(pred, gt):
     error = np.sqrt(np.mean(dif**2))
     return error   
 
-def test(model, rgb, lidar, mask, lab):
+def test(model, rgb, lidar):
     model.eval()
 
     model = model.to(DEVICE)
     rgb = rgb.to(DEVICE)
-    lab = lab.to(DEVICE)
     lidar = lidar.to(DEVICE)
-    mask = mask.to(DEVICE)
 
     with torch.no_grad():
-        color_path_dense, lab_path_dense, color_attn, lab_attn = model(rgb, lidar, mask, lab)
+        predicted_dense = model(rgb, lidar)
 
-        predicted_dense, pred_color_path_dense, pred_normal_path_dense = get_predicted_depth(color_path_dense, lab_path_dense, color_attn, lab_attn)
 
         
         return torch.squeeze(predicted_dense).cpu()
@@ -71,7 +69,7 @@ def main():
     num_testing_image = len(rgb_paths) if args.num_testing_image == -1 else args.num_testing_image
 
     # load model
-    model = deepLidar()
+    model = FuseNet(12)
     dic = torch.load(args.model_path, map_location=DEVICE)
     state_dict = dic["state_dict"]
     model.load_state_dict(state_dict)
@@ -90,7 +88,7 @@ def main():
         gt = read_gt(gt_paths[idx]) # h x w x 1
 
         # transform numpy to tensor and add batch dimension
-        rgb, lab = transformer(rgb).unsqueeze(0), transformer(lab).unsqueeze(0)
+        rgb = transformer(rgb).unsqueeze(0)
         lidar, mask = transformer(lidar).unsqueeze(0), transformer(mask).unsqueeze(0)
         
         # saved file path
@@ -98,7 +96,7 @@ def main():
         saved_path = os.path.join(PREDICTED_RESULT_DIR, fn)
 
         # run model
-        pred = test(model, rgb, lidar, mask, lab).numpy()
+        pred = test(model, rgb, lidar).numpy()
         pred = np.where(pred <= 0.0, 0.9, pred)
 
         gt = gt.reshape(gt.shape[0], gt.shape[1])
