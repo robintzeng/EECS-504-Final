@@ -32,15 +32,15 @@ def rmse(pred, gt):
     error = np.sqrt(np.mean(dif**2))
     return error   
 
-def test(model, rgb, lidar):
+def test(model, rgb, lidar, lab):
     model.eval()
 
     model = model.to(DEVICE)
     rgb = rgb.to(DEVICE)
     lidar = lidar.to(DEVICE)
-
+    lab = lab.to(DEVICE)
     with torch.no_grad():
-        predicted_dense = model(rgb, lidar)
+        predicted_dense = model(rgb, lidar, lab)
 
 
         
@@ -84,19 +84,21 @@ def main():
     for idx in pbar:
         # read image
         rgb = read_rgb(rgb_paths[idx]) # h x w x 3
+        lab = np.int8(color.rgb2lab(rgb)).astype('float32')
+
         lidar, mask = read_lidar(lidar_paths[idx]) # h x w x 1
         gt = read_gt(gt_paths[idx]) # h x w x 1
 
         # transform numpy to tensor and add batch dimension
         rgb = transformer(rgb).unsqueeze(0)
         lidar, mask = transformer(lidar).unsqueeze(0), transformer(mask).unsqueeze(0)
-        
+        lab = transformer(lab).unsqueeze(0)
         # saved file path
         fn = os.path.basename(rgb_paths[idx])
         saved_path = os.path.join(PREDICTED_RESULT_DIR, fn)
 
         # run model
-        pred = test(model, rgb, lidar).numpy()
+        pred = test(model, rgb, lidar, lab).numpy()
         pred = np.where(pred <= 0.0, 0.9, pred)
 
         gt = gt.reshape(gt.shape[0], gt.shape[1])
