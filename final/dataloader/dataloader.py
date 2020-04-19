@@ -16,16 +16,16 @@ INTRINSICS = {
 
 def get_loader(split='train', batch_size=8, shuffle=True, num_workers=8, num_data=None, crop=True):
     """Get torch dataloader."""
-    rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths, lab_image_paths = get_paths(split)
-    dataset = depth_dataset(rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths, lab_image_paths, num_data, crop=crop)
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
+    rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths = get_paths(split)
+    dataset = depth_dataset(rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths, num_data, crop=crop)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
     return loader
 
 class depth_dataset(Dataset):
     """Depth dataset."""
 
-    def __init__(self, rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths, lab_image_paths, num_data=None, h=128, w=256, crop=True):
+    def __init__(self, rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths=None, num_data=None, h=128, w=256, crop=True):
         """
         Params:
         h: the height of cropped image
@@ -34,8 +34,9 @@ class depth_dataset(Dataset):
         self.rgb_image_paths = np.array(rgb_image_paths)
         self.lidar_image_paths = np.array(lidar_image_paths)
         self.gt_image_paths = np.array(gt_image_paths)
-        self.normal_image_paths = np.array(normal_image_paths)
-        self.lab_image_paths = np.array(lab_image_paths)
+        
+        if normal_image_paths:
+            self.normal_image_paths = np.array(normal_image_paths)
 
         if num_data:
             np.random.seed(0)
@@ -43,14 +44,14 @@ class depth_dataset(Dataset):
             self.rgb_image_paths = self.rgb_image_paths[indices]
             self.lidar_image_paths = self.lidar_image_paths[indices]
             self.gt_image_paths = self.gt_image_paths[indices]
-            self.normal_image_paths = self.normal_image_paths[indices]
-            self.lab_image_paths = self.lab_image_paths[indices]
-
+            if normal_image_paths:
+                self.normal_image_paths = self.normal_image_paths[indices]
+            
         self.crop_or_not = crop
         self.h = h
         self.w = w
     
-        self.transforms = image_transforms() # to tensor
+        self.transforms = image_transforms()
 
     def __len__(self):
         return len(self.rgb_image_paths)
@@ -66,10 +67,16 @@ class depth_dataset(Dataset):
         surface_normal: 3 x 128 x 256
         mask_normal: 3 x 128 x 256
         """
+        date = self.rgb_image_paths[idx].split('/')[6][:10] # use to get intrinsic
+
+        intrinsics = INTRINSICS[date]
+        params = np.ones((self.h, self.w, 3)).astype('float32')
+        params[:, :, 0] = params[:, :, 0] * intrinsics[0]
+        params[:, :, 1] = params[:, :, 1] * intrinsics[1]
+        params[:, :, 2] = params[:, :, 2] * intrinsics[2]
 
         # read image
         rgb = read_rgb(self.rgb_image_paths[idx])
-        lab = read_lab(self.lab_image_paths[idx])
         lidar, mask = read_lidar(self.lidar_image_paths[idx])
         gt = read_gt(self.gt_image_paths[idx])
         surface_normal, mask_normal = read_normal(self.normal_image_paths[idx])
@@ -82,13 +89,14 @@ class depth_dataset(Dataset):
 
         if self.crop_or_not:
             rgb = self._crop(rgb, x_lefttop, y_lefttop, self.h, self.w)
-            lab = self._crop(lab, x_lefttop, y_lefttop, self.h, self.w)
             lidar = self._crop(lidar, x_lefttop, y_lefttop, self.h, self.w)
             mask = self._crop(mask, x_lefttop, y_lefttop, self.h, self.w)
             gt = self._crop(gt, x_lefttop, y_lefttop, self.h, self.w)
             surface_normal = self._crop(surface_normal, x_lefttop, y_lefttop, self.h, self.w)
-        return self.transforms(rgb), self.transforms(lidar), self.transforms(mask), self.transforms(gt), self.transforms(surface_normal),\
-            self.transforms(lab)
+            mask_normal = self._crop(mask_normal, x_lefttop, y_lefttop, self.h, self.w)
+
+        return self.transforms(rgb), self.transforms(lidar), self.transforms(mask), self.transforms(gt), self.transforms(params),\
+            self.transforms(surface_normal), self.transforms(mask_normal)
         
         #return self.transforms(rgb), self.transforms(lidar), self.transforms(mask), self.transforms(gt), self.transforms(params)
         
@@ -113,7 +121,6 @@ rgb_folder = os.path.join(KITTI_DATASET_PATH, 'data_depth_rgb')
 lidar_folder = os.path.join(KITTI_DATASET_PATH, 'data_depth_velodyne')
 gt_folder = os.path.join(KITTI_DATASET_PATH, 'data_depth_annotated')
 normal_folder = os.path.join(KITTI_DATASET_PATH, 'data_depth_normals')
-lab_folder = os.path.join(KITTI_DATASET_PATH, 'data_depth_lab')
 
 rgb2_subfolder = os.path.join('image_02', 'data')
 rgb3_subfolder = os.path.join('image_03', 'data')
@@ -142,7 +149,6 @@ def get_paths(split='train'):
     date_folder_list.sort()
 
     rgb_image_paths = []
-    lab_image_paths = []
     lidar_image_paths = []
     gt_image_paths = []
     normal_image_paths = []
@@ -151,9 +157,6 @@ def get_paths(split='train'):
         # set base dir of rgb, lidar, gt, normal
         rgb2_base = os.path.join(rgb_folder, split, date_folder, rgb2_subfolder)
         rgb3_base = os.path.join(rgb_folder, split, date_folder, rgb3_subfolder)
-
-        lab2_base = os.path.join(lab_folder, split, date_folder, rgb2_subfolder)
-        lab3_base = os.path.join(lab_folder, split, date_folder, rgb3_subfolder)
 
         lidar2_base = os.path.join(lidar_folder, split, date_folder, lidar2_subfolder)
         lidar3_base = os.path.join(lidar_folder, split, date_folder, lidar3_subfolder)   
@@ -172,9 +175,6 @@ def get_paths(split='train'):
         rgb_image_paths.extend([os.path.join(rgb2_base, fn) for fn in img_filenames])
         rgb_image_paths.extend([os.path.join(rgb3_base, fn) for fn in img_filenames])
 
-        lab_image_paths.extend([os.path.join(lab2_base, fn + '.npy') for fn in img_filenames])
-        lab_image_paths.extend([os.path.join(lab3_base, fn + '.npy') for fn in img_filenames])
-
         lidar_image_paths.extend([os.path.join(lidar2_base, fn) for fn in img_filenames])
         lidar_image_paths.extend([os.path.join(lidar3_base, fn) for fn in img_filenames])
 
@@ -184,11 +184,11 @@ def get_paths(split='train'):
         normal_image_paths.extend([os.path.join(normal2_base, fn) for fn in img_filenames])
         normal_image_paths.extend([os.path.join(normal3_base, fn) for fn in img_filenames])
 
-    assert len(rgb_image_paths) == len(lidar_image_paths) == len(gt_image_paths) == len(lab_image_paths)
+    assert len(rgb_image_paths) == len(lidar_image_paths) == len(gt_image_paths) == len(normal_image_paths)
 
     print('The number of {} data: {}'.format(split, len(rgb_image_paths)))
 
-    return rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths, lab_image_paths
+    return rgb_image_paths, lidar_image_paths, gt_image_paths, normal_image_paths
 
 
 if __name__ == '__main__':
