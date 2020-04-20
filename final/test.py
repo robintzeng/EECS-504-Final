@@ -46,7 +46,7 @@ def test(model, rgb, lidar, mask, lab):
         predicted_dense, pred_color_path_dense, pred_normal_path_dense = get_predicted_depth(color_path_dense, lab_path_dense, color_attn, lab_attn)
 
         
-        return torch.squeeze(predicted_dense).cpu()
+        return torch.squeeze(pred_normal_path_dense).cpu()
 
 def get_testing_img_paths():
     gt_folder = os.path.join(KITTI_DATASET_PATH, 'depth_selection', 'val_selection_cropped', 'groundtruth_depth')
