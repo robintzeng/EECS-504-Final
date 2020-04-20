@@ -30,7 +30,7 @@ class FuseNet(nn.Module):
         self.block_layer = nn.Sequential(*block_layer)
 
 
-    def forward(self, rgb, lidar):
+    def forward(self, rgb, lidar, mask):
         b, c, w, h = rgb.size()
 
         l1 = self.relu(self.bn1(self.conv1(lidar)))
@@ -46,6 +46,10 @@ class FuseNet(nn.Module):
 
         x = self.relu(self.bn5(self.conv5(x)))
         x = self.conv6(x)
+
+        inv_mask = torch.ones_like(mask) - mask
+        x = inv_mask * x + lidar * mask
+
         return x
 if __name__ == "__main__":
     from dataloader.dataloader import get_loader

@@ -47,7 +47,7 @@ def main_train(model):
         train_losses, val_losses = train_val(model, loader, epoch, DEVICE)
 
         # predict dense and surface normal using testing image and write them to tensorboard
-        predicted_dense = get_depth_and_normal(model, testing_rgb, testing_lidar)
+        predicted_dense = get_depth_and_normal(model, testing_rgb, testing_lidar, testing_mask)
         tb_writer.tensorboard_write(epoch, train_losses, val_losses, predicted_dense)
 
         if early_stop.stop(val_losses[0], model, epoch+1, saved_model_path):
