@@ -66,7 +66,7 @@ def main():
         model.load_state_dict(state_dict)
         print('Loss of loaded model: {:.4f}'.format(dic['val_loss']))
 
-
+    print('The number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
     main_train(model)
 
 
