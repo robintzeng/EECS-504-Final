@@ -23,12 +23,14 @@ class FuseBlock(nn.Module):
         self.bn3 = nn.BatchNorm2d(C)
         self.conv4 = nn.Conv2d(C, C, kernel_size=3, stride=1, padding=1, bias=True)
         self.bn4 = nn.BatchNorm2d(C)
-        self.conv5 = nn.Conv2d(C, C, kernel_size=3, stride=1, padding=1, bias=True)
+        self.conv5 = nn.Conv2d(2*C, C, kernel_size=3, stride=1, padding=1, bias=True)
         self.bn5 = nn.BatchNorm2d(C)
-        self.conv6 = nn.Conv2d(C, C, kernel_size=3, stride=1, padding=1, bias=True)
+        self.conv6 = nn.Conv2d(2*C, C, kernel_size=3, stride=1, padding=1, bias=True)
         self.bn6 = nn.BatchNorm2d(C)
-        self.conv7 = nn.Conv2d(C, in_channel, kernel_size=3, stride=1, padding=1, bias=True)
+        self.conv7 = nn.Conv2d(2*C, in_channel, kernel_size=3, stride=1, padding=1, bias=True)
         self.bn7 = nn.BatchNorm2d(in_channel)
+
+        #self.conv7 = nn.Conv2d(2*C, in_channel, kernel_size=3, stride=1, padding=1, bias=True)
 
 
         self.relu = nn.ReLU(inplace=True)
@@ -47,12 +49,12 @@ class FuseBlock(nn.Module):
         x3_conv = self.relu(self.bn4(self.conv4(x3)))
 
         b, c, w2, h2 = x2_conv.size()
-        x5 = self.relu(self.bn5(self.conv5(x2_conv + F.interpolate(x3_conv, (w2, h2), mode='bilinear', align_corners=True))))
+        x5 = self.relu(self.bn5(self.conv5(torch.cat((x2_conv, F.interpolate(x3_conv, (w2, h2), mode='bilinear', align_corners=True)), dim=1))))
 
         b, c, w1, h1 = x1_conv.size()
-        x6 = self.relu(self.bn6(self.conv6(x1_conv + F.interpolate(x5, (w1, h1), mode='bilinear', align_corners=True))))
-        x7 = self.relu(self.bn7(self.conv7(x0_conv + F.interpolate(x6, (w, h), mode='bilinear', align_corners=True))))
-        return x + x7
+        x6 = self.relu(self.bn6(self.conv6(torch.cat((x1_conv, F.interpolate(x5, (w1, h1), mode='bilinear', align_corners=True)), dim=1))))
+        x7 = self.relu(self.bn7(self.conv7(torch.cat((x0_conv, F.interpolate(x6, (w, h), mode='bilinear', align_corners=True)), dim=1))))
+        return x7
         """# first branch
         x_1 = self.relu(self.bn3(self.conv3(x)))
 
