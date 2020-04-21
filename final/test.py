@@ -32,15 +32,15 @@ def rmse(pred, gt):
     error = np.sqrt(np.mean(dif**2))
     return error   
 
-def test(model, rgb, lidar):
+def test(model, rgb, lidar, mask):
     model.eval()
 
     model = model.to(DEVICE)
     rgb = rgb.to(DEVICE)
     lidar = lidar.to(DEVICE)
-
+    mask = mask.to(DEVICE)
     with torch.no_grad():
-        predicted_dense = model(rgb, lidar)
+        predicted_dense = model(rgb, lidar, mask)
 
 
         
@@ -96,7 +96,7 @@ def main():
         saved_path = os.path.join(PREDICTED_RESULT_DIR, fn)
 
         # run model
-        pred = test(model, rgb, lidar).numpy()
+        pred = test(model, rgb, lidar, mask).numpy()
         pred = np.where(pred <= 0.0, 0.9, pred)
 
         gt = gt.reshape(gt.shape[0], gt.shape[1])
