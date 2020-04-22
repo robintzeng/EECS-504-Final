@@ -6,10 +6,10 @@ import numpy as np
 
 def get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn):
     """Use raw model output to generate dense of color pathway, normal path way, and integrated result
-
     Returns: predicted_dense, pred_color_path_dense, pred_normal_path_dense
     """
     # get predicted dense depth from 2 pathways
+    b, _, h, w = color_path_dense.size()
     pred_color_path_dense = color_path_dense[:, 0, :, :] # b x 128 x 256
     pred_normal_path_dense = normal_path_dense[:, 0, :, :]
 
@@ -18,7 +18,7 @@ def get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_
     normal_attn = torch.squeeze(normal_attn) # b x 128 x 256
 
     # softmax 2 attention map
-    pred_attn = torch.zeros_like(color_path_dense) # b x 2 x 128 x 256
+    pred_attn = torch.zeros((b, 2, h, w)).to(color_path_dense.device)#torch.zeros_like(color_path_dense) # b x 2 x 128 x 256
     pred_attn[:, 0, :, :] = color_attn
     pred_attn[:, 1, :, :] = normal_attn
     pred_attn = F.softmax(pred_attn, dim=1) # b x 2 x 128 x 256
@@ -32,9 +32,9 @@ def get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_
     pred_color_path_dense = pred_color_path_dense.unsqueeze(1) 
     pred_normal_path_dense = pred_normal_path_dense.unsqueeze(1)
 
-    return predicted_dense, pred_color_path_dense, pred_normal_path_dense
+    return predicted_dense
 
-def get_depth_and_normal(model, rgb, lidar):
+def get_depth_and_normal(model, rgb, lidar, mask):
     """Given model and input of model, get dense depth and surface normal
 
     Returns:
@@ -43,7 +43,9 @@ def get_depth_and_normal(model, rgb, lidar):
     """
     model.eval()
     with torch.no_grad():
-        predicted_dense = model(rgb, lidar)
+        x_global, x_local, global_attn, local_attn = model(rgb, lidar)
+    predicted_dense = get_predicted_depth(x_global, x_local, global_attn, local_attn)
+
     return predicted_dense
 
 
