@@ -25,6 +25,8 @@ args = parser.parse_args()
 DEVICE = 'cuda' if torch.cuda.is_available() and not args.using_cpu else 'cpu'
 
 
+
+
 def main_train(model):
     # setting tensorboard
     tensorboard_path = 'runs/{}'.format(args.saved_model_name)

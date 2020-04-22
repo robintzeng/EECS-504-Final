@@ -89,7 +89,6 @@ def get_depth_loss(dense, gt):
     normals: b x 128 x 256 x 3
     """
     valid_mask = (gt > 0.0).detach() # b x 1 x 128 x 256
-
     gt = gt[valid_mask]
     dense = dense[valid_mask]
 
@@ -103,8 +102,6 @@ def get_depth_loss(dense, gt):
 
 
 def get_loss(predicted_dense, gt_depth):
+    return get_depth_loss(predicted_dense, gt_depth)
 
 
-    loss = get_depth_loss(predicted_dense, gt_depth)
-
-    return loss

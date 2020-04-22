@@ -4,58 +4,39 @@ import torch.nn as nn
 import numpy as np
 import torch.optim as optim
 from training.utils import get_loss
+import torch.nn.functional as F
 
 
 
-def get_optimizer(model, stage):
-    """(1) Get optimizer at different stage.
-       (2) Set require_grad of parameters at different stage
-       (3) Get weights of each loss at different stage
-       For example, at stage N, we only need to train surface normal.
-
-       Returns: 
-       model
-       optimizer
-       loss: list, weight of loss_c, loss_d, loss, loss_normal
+def get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn):
+    """Use raw model output to generate dense of color pathway, normal path way, and integrated result
+    Returns: predicted_dense, pred_color_path_dense, pred_normal_path_dense
     """
-    assert stage in {'D', 'N', 'A'}
+    # get predicted dense depth from 2 pathways
+    b, _, h, w = color_path_dense.size()
+    pred_color_path_dense = color_path_dense[:, 0, :, :] # b x 128 x 256
+    pred_normal_path_dense = normal_path_dense[:, 0, :, :]
 
-    if stage == 'N':
-        for param in model.parameters():
-            param.requires_grad = False
-        for param in model.normal.parameters():
-            param.requires_grad = True
+    # get attention map of 2 pathways
+    color_attn = torch.squeeze(color_attn) # b x 128 x 256
+    normal_attn = torch.squeeze(normal_attn) # b x 128 x 256
 
-        optimizer = optim.Adam(model.normal.parameters(), lr=0.001, betas=(0.9, 0.999))
-        loss_weights = [0, 0, 0, 1]
+    # softmax 2 attention map
+    pred_attn = torch.zeros((b, 2, h, w))#torch.zeros_like(color_path_dense) # b x 2 x 128 x 256
+    pred_attn[:, 0, :, :] = color_attn
+    pred_attn[:, 1, :, :] = normal_attn
+    pred_attn = F.softmax(pred_attn, dim=1) # b x 2 x 128 x 256
 
-    elif stage == 'D':
-        for param in model.parameters():
-            param.requires_grad = False
-        for param in model.color_path.parameters():
-            param.requires_grad = True
-        for param in model.normal_path.parameters():
-            param.requires_grad = True
+    color_attn, normal_attn = pred_attn[:, 0, :, :], pred_attn[:, 1, :, :]
 
-        optimizer = optim.Adam([{'params':model.color_path.parameters()},
-                                {'params':model.normal_path.parameters()}], lr=0.001, betas=(0.9, 0.999))
-        loss_weights = [0.3, 0.3, 0.0, 0.1]
+    # get predicted dense from weighted sum of 2 path way
+    predicted_dense = pred_color_path_dense * color_attn + pred_normal_path_dense * normal_attn # b x 128 x 256
 
-    else:
-        for param in model.color_path.parameters():
-            param.requires_grad = True  
-        for param in model.normal.parameters():
-            param.requires_grad = False  
+    predicted_dense = predicted_dense.unsqueeze(1)
+    pred_color_path_dense = pred_color_path_dense.unsqueeze(1) 
+    pred_normal_path_dense = pred_normal_path_dense.unsqueeze(1)
 
-        optimizer = optim.Adam([{'params':model.color_path.parameters()},
-                                {'params':model.normal_path.parameters()},
-                                {'params':model.mask_block_C.parameters()},
-                                {'params':model.mask_block_N.parameters()}], lr=0.001, betas=(0.9, 0.999))
- 
-        loss_weights = [0.3, 0.3, 0.5, 0.1]
-
-    return model, optimizer, loss_weights
-
+    return predicted_dense
 
 
 def train_val(model, loader, epoch, device):
@@ -71,7 +52,7 @@ def train_val(model, loader, epoch, device):
     train_loss, val_loss = [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]
 
     for phase in ['train', 'val']:
-        total_loss, total_loss_d, total_loss_c, total_loss_n, total_loss_normal = 0, 0, 0, 0, 0
+        total_loss, total_loss_g, total_loss_l, total_loss_w, total_loss_normal = 0, 0, 0, 0, 0
         total_pic = 0 # used to calculate average loss
         data_loader = loader[phase]
         pbar = tqdm(iter(data_loader))
@@ -93,21 +74,28 @@ def train_val(model, loader, epoch, device):
             gt_depth = gt_depth.to(device)
 
             if phase == 'train':
-                predicted_dense = model(rgb, lidar)
+                x_global, x_local, global_attn, local_attn = model(rgb, lidar)
             else:
                 with torch.no_grad():
-                    predicted_dense = model(rgb, lidar)
+                    x_global, x_local, global_attn, local_attn = model(rgb, lidar)
             # color_path_dense: b x 2 x 128 x 256
             # normal_path_dense: b x 2 x 128 x 256
             # color_mask: b x 1 x 128 x 256
             # normal_mask: b x 1 x 128 x 256
             # surface_normal: b x 3 x 128 x 256
+            predicted_dense = get_predicted_depth(x_global, x_local, global_attn, local_attn)
 
-            loss = get_loss(predicted_dense, gt_depth)
+            w_loss = get_loss(predicted_dense, gt_depth)
+            local_loss = get_loss(x_local, gt_depth)
+            global_loss = get_loss(x_global, gt_depth)
 
+
+            loss = 0.25*local_loss+0.25*global_loss+0.5*w_loss
 
             total_loss += loss.item()
-
+            total_loss_w += w_loss.item()
+            total_loss_g += global_loss.item()
+            total_loss_l += local_loss.item()
             total_pic += rgb.size(0)
 
             if phase == 'train':
@@ -120,8 +108,8 @@ def train_val(model, loader, epoch, device):
                 val_loss[0] = total_loss/total_pic
 
 
-            pbar.set_description('[{}] Epoch: {}; loss: {:.4f}'.\
-                format(phase.upper(), epoch + 1, total_loss/total_pic))
+            pbar.set_description('[{}] Epoch: {}; loss: {:.4f}; loss_w: {:.4f}, loss_g: {:.4f}, loss_l: {:.4f}'.\
+                format(phase.upper(), epoch + 1, total_loss/total_pic, total_loss_w/total_pic, total_loss_g/total_pic, total_loss_l/total_pic))
 
     return train_loss, val_loss
 
