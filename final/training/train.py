@@ -22,7 +22,7 @@ def get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_
     normal_attn = torch.squeeze(normal_attn) # b x 128 x 256
 
     # softmax 2 attention map
-    pred_attn = torch.zeros((b, 2, h, w))#torch.zeros_like(color_path_dense) # b x 2 x 128 x 256
+    pred_attn = torch.zeros((b, 2, h, w)).to(color_path_dense.device)#torch.zeros_like(color_path_dense) # b x 2 x 128 x 256
     pred_attn[:, 0, :, :] = color_attn
     pred_attn[:, 1, :, :] = normal_attn
     pred_attn = F.softmax(pred_attn, dim=1) # b x 2 x 128 x 256
