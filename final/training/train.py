@@ -3,40 +3,11 @@ import torch
 import torch.nn as nn
 import numpy as np
 import torch.optim as optim
-from training.utils import get_loss
+from training.utils import get_loss, get_predicted_depth
 import torch.nn.functional as F
 
 
 
-def get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn):
-    """Use raw model output to generate dense of color pathway, normal path way, and integrated result
-    Returns: predicted_dense, pred_color_path_dense, pred_normal_path_dense
-    """
-    # get predicted dense depth from 2 pathways
-    b, _, h, w = color_path_dense.size()
-    pred_color_path_dense = color_path_dense[:, 0, :, :] # b x 128 x 256
-    pred_normal_path_dense = normal_path_dense[:, 0, :, :]
-
-    # get attention map of 2 pathways
-    color_attn = torch.squeeze(color_attn) # b x 128 x 256
-    normal_attn = torch.squeeze(normal_attn) # b x 128 x 256
-
-    # softmax 2 attention map
-    pred_attn = torch.zeros((b, 2, h, w)).to(color_path_dense.device)#torch.zeros_like(color_path_dense) # b x 2 x 128 x 256
-    pred_attn[:, 0, :, :] = color_attn
-    pred_attn[:, 1, :, :] = normal_attn
-    pred_attn = F.softmax(pred_attn, dim=1) # b x 2 x 128 x 256
-
-    color_attn, normal_attn = pred_attn[:, 0, :, :], pred_attn[:, 1, :, :]
-
-    # get predicted dense from weighted sum of 2 path way
-    predicted_dense = pred_color_path_dense * color_attn + pred_normal_path_dense * normal_attn # b x 128 x 256
-
-    predicted_dense = predicted_dense.unsqueeze(1)
-    pred_color_path_dense = pred_color_path_dense.unsqueeze(1) 
-    pred_normal_path_dense = pred_normal_path_dense.unsqueeze(1)
-
-    return predicted_dense
 
 
 def train_val(model, loader, epoch, device):
@@ -72,12 +43,12 @@ def train_val(model, loader, epoch, device):
             """
             rgb, lidar = rgb.to(device), lidar.to(device)
             gt_depth = gt_depth.to(device)
-
+            mask = mask.to(device)
             if phase == 'train':
-                x_global, x_local, global_attn, local_attn = model(rgb, lidar)
+                x_global, x_local, global_attn, local_attn = model(rgb, lidar, mask)
             else:
                 with torch.no_grad():
-                    x_global, x_local, global_attn, local_attn = model(rgb, lidar)
+                    x_global, x_local, global_attn, local_attn = model(rgb, lidar, mask)
             # color_path_dense: b x 2 x 128 x 256
             # normal_path_dense: b x 2 x 128 x 256
             # color_mask: b x 1 x 128 x 256

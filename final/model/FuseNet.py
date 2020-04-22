@@ -7,10 +7,10 @@ class FuseNet(nn.Module):
         # N: the number of fuseblock
         super(FuseNet, self).__init__()
 
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1, bias=True)
+        self.conv1 = nn.Conv2d(2, 16, kernel_size=3, stride=2, padding=1, bias=True)
         self.conv2 = nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1, bias=True)
 
-        self.conv3 = nn.Conv2d(4, 32, kernel_size=3, stride=2, padding=1, bias=True)
+        self.conv3 = nn.Conv2d(5, 32, kernel_size=3, stride=2, padding=1, bias=True)
         self.conv4 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1, bias=True)
 
         self.conv5 = nn.Conv2d(48, 32, kernel_size=3, stride=1, padding=1, bias=True)
@@ -42,8 +42,11 @@ class FuseNet(nn.Module):
             local_layer += [LocalBlock(in_channel=48, C=64)]
         self.local_layer = nn.Sequential(*local_layer)
 
-    def forward(self, rgb, lidar):
+    def forward(self, rgb, lidar, mask):
         b, c, w, h = rgb.size()
+
+        lidar = torch.cat((lidar, mask), dim=1)
+
 
         l1 = self.relu(self.bn1(self.conv1(lidar)))
         l2 = self.relu(self.bn2(self.conv2(l1)))

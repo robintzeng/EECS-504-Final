@@ -40,11 +40,12 @@ def test(model, rgb, lidar, mask):
     lidar = lidar.to(DEVICE)
 
     with torch.no_grad():
-        predicted_dense = model(rgb, lidar)
+        x_global, x_local, global_attn, local_attn = model(rgb, lidar, mask)
 
+    predicted_dense = get_predicted_depth(x_global, x_local, global_attn, local_attn)
 
         
-        return torch.squeeze(predicted_dense).cpu()
+    return torch.squeeze(predicted_dense).cpu()
 
 def get_testing_img_paths():
     gt_folder = os.path.join(KITTI_DATASET_PATH, 'depth_selection', 'val_selection_cropped', 'groundtruth_depth')
