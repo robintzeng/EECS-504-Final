@@ -1,8 +1,7 @@
 # Mask-Assisted Depth Completion with Multi-Resolution Predictions Based onAttention Mechanism from Color Image and Sparse LiDAR
 
-AbstractDepth  completion  is  essential  for  autonomous  drivingapplications.  In  this  paper,   we  propose  the  end-to-endlearning architecture to effectively complete depth from acolor image and sparse LiDAR data.   We develop a localpathway  and  a  global  pathway  to  extract  high-resolutionfeatures and low-resolution features respectively.   The lo-cal pathway is FuseNet without 3D representation from [2],and the global pathway is made up of our proposed stackedU-Block. Our architecture combines predictions from thesepathways  based  on  the  attention  mechanism.With  thelearned confidence map, our model can put attention on lo-cal or global pathway depending on their confidence, andexperiment result shows that local pathway has higher con-fidence on the edge,  and global pathway has higher con-fidence inside the object.  Furthermore, we apply a binarymask to help our model know positions of valid values insparse LiDAR data, and it can boost the performance of lo-cal pathway.   We evaluate our model on the KITTI depthcompletion  dataset.   To  make  comparison,  we  implementtwo models ranking8thand11thon the KITTI depth com-pletion benchmark. Also, we conduct an ablation study andqualitative analysis to demonstrate the effectiveness of pro-posed U-Block and our methods
-
-
+## Introduction
+**Abstract Depth  completion**  is  essential  for  autonomous  driving applications.  In  this  paper,   we  propose  the  end-to-end learning architecture to effectively complete depth from acolor image and sparse LiDAR data.   We develop a localpathway  and  a  global  pathway  to  extract  high-resolutionfeatures and low-resolution features respectively.   The local pathway is FuseNet without 3D representation ,and the global pathway is made up of our proposed stackedU-Block. Our architecture combines predictions from thesepathways  based  on  the  attention  mechanism.With  thelearned confidence map, our model can put attention on local or global pathway depending on their confidence, and experiment result shows that local pathway has higher confidence on the edge,  and global pathway has higher confidence inside the object.  Furthermore, we apply a binarymask to help our model know positions of valid values insparse LiDAR data, and it can boost the performance of local pathway.   We evaluate our model on the KITTI depth completion  dataset.   To  make  comparison,  we  implementtwo models ranking8th and 11th on the KITTI depth completion benchmark. Also, we conduct an ablation study andqualitative analysis to demonstrate the effectiveness of proposed U-Block and our methods
 
 ## Requirements
 * Python 3.6.8
@@ -69,15 +68,6 @@ KITTI_DATASET_PATH = /PATH/TO/KITTI_data/ # path to KITTI_data as structured in 
 PREDICTED_RESULT_DIR = './predicted_dense' # path to save predicted figures (used in test.py)
 ```
 
-
-### To generate **data_depth_normals**
-First, enter **surface-normal/** to build and install library. 
-
-Second, run the following script to generate **data_depth_normals**
-```
-python3 generate_normals.py
-```
-
 ## Pretrained Model Download
 See the next section
 
@@ -99,20 +89,6 @@ python3 main.py -b <BATCH_SIZE> -e <EPOCH> -m <SAVED_MODEL_NAME> -l <MODEL_PATH>
     -cpu
         if you want to use CPU to train
 ```
-There are three different stages of training model.
-1. (N) Train surface normal
-2. (D) Train depth of color pathway and normal pathway
-3. (A) Train the whole network (fix surface normal network)
-
-We test the model with 3 different settings
-
-(A) Train N stage for 15 epoch, train D stage for 15 epoch, and then train A stage for 15 epoch ([download](https://drive.google.com/open?id=1q5crzuMye55SwNMMMY5BDc67M4pziGUM))
-
-(B) Train A for 12 epochs (due to early stop with patience 10, no update parameter of deepLidar.normal (random)) ([download](https://drive.google.com/open?id=1uG6p4wuD9CumYz7hhlCOzkKs7Aoeo6GK))
-
-(c) Train A for 10 epochs (update parameter of deepLidar.normal) ([download](https://drive.google.com/open?id=1Mgf1GfryuwS-NIigqSvg0Uxf0JcvuKdr))
-
-
 ### Test
 Test on **depth_selection/val_selection_cropped** data
 ```
@@ -126,13 +102,6 @@ python3 test.py -m <MODEL_PATH> -n <NUM_DATA> -cpu
     -s
         if you want to save predicted figure in PREDICTED_RESULT_DIR
 ```
-The following results are testing on **depth_selection/val_selection_cropped** data
-|  Setting   | RMSE (mm)  |
-|  ----  | ----  |
-| A ([download](https://drive.google.com/open?id=1q5crzuMye55SwNMMMY5BDc67M4pziGUM)) | 1191.6127 |
-| B ([download](https://drive.google.com/open?id=1uG6p4wuD9CumYz7hhlCOzkKs7Aoeo6GK)) | 1182.6613 |
-| C ([download](https://drive.google.com/open?id=1Mgf1GfryuwS-NIigqSvg0Uxf0JcvuKdr)) | 1026.8722 |
-
 ### Test a pair of inputs
 Run a pair of rgb and lidar image as input, and then save the predicted dense depth
 ```
@@ -147,35 +116,8 @@ python3 test_a_pair.py --model_path </PATH/TO/PRETRAIN_MODEL> --rgb <PATH/TO/RGB
     --saved_path <PATH>
         the path of saved image
 ```
-
-
 ## Tensorboard Visualization
 ```
 tensorboard --logdir runs/
 ```
 
-## Experiment of setting A
-Input data (rgb image, lidar image)
-![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/input.png)
-
-Groundtruth (surface normal, dense depth)
-![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/gt.png)
-
-Masked predicted result (masked surface normal, masked dense depth)
-![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/mask_pred.png)
-
-Predicted result (surface normal, dense depth)
-![image](https://github.com/ChingYenShih/EECS-545-Final/blob/master/final/figure/pred.png)
-
-
-## Citation 
-If you use this method in your work, please cite the following:
-```
-@InProceedings{Qiu_2019_CVPR,
-author = {Qiu, Jiaxiong and Cui, Zhaopeng and Zhang, Yinda and Zhang, Xingdi and Liu, Shuaicheng and Zeng, Bing and Pollefeys, Marc},
-title = {DeepLiDAR: Deep Surface Normal Guided Depth Prediction for Outdoor Scene From Sparse LiDAR Data and Single Color Image},
-booktitle = {The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
-month = {June},
-year = {2019}
-}
-```
