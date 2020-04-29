@@ -1,19 +1,6 @@
-# DeepLiDAR (Python3, Pytorch 1.4.0)
-This repository is the implementation for [DeepLiDAR: Deep Surface Normal Guided Depth Prediction for Outdoor Scene from Sparse LiDAR Data and Single Color Image](http://openaccess.thecvf.com/content_CVPR_2019/papers/Qiu_DeepLiDAR_Deep_Surface_Normal_Guided_Depth_Prediction_for_Outdoor_Scene_CVPR_2019_paper.pdf). There are some difference between author's repo and mine.
+# Mask-Assisted Depth Completion with Multi-Resolution Predictions Based onAttention Mechanism from Color Image and Sparse LiDAR
 
-(1) Rewrite the code referenced from [author's repo](https://github.com/JiaxiongQ/DeepLiDAR) with python3.6 and newest version of pytorch. 
-
-(2) Clarify the structure of KITTI depth completion data
-
-(3) Make it easier to reproduce my result (**not author's result**, because by considering computational resources and time, there are some differences between author's implementation and mine)
- - Reduce model parameters. (Original model is too large to put onto single GPU, 3 GeForce GTX 1080 Ti GPUs)
- - Smaller training image (128 x 256). (Author uses 256 x 512)
- - Use less data to train (20000 images). (Author used 85898 images, and it takes about 3 days to train)
- - Slight implementation difference 
-
-(4) I add comments on the code and make it more flexible and readable. 
-
-(5) I add tensorboard visualization for every epoch
+AbstractDepth  completion  is  essential  for  autonomous  drivingapplications.  In  this  paper,   we  propose  the  end-to-endlearning architecture to effectively complete depth from acolor image and sparse LiDAR data.   We develop a localpathway  and  a  global  pathway  to  extract  high-resolutionfeatures and low-resolution features respectively.   The lo-cal pathway is FuseNet without 3D representation from [2],and the global pathway is made up of our proposed stackedU-Block. Our architecture combines predictions from thesepathways  based  on  the  attention  mechanism.With  thelearned confidence map, our model can put attention on lo-cal or global pathway depending on their confidence, andexperiment result shows that local pathway has higher con-fidence on the edge,  and global pathway has higher con-fidence inside the object.  Furthermore, we apply a binarymask to help our model know positions of valid values insparse LiDAR data, and it can boost the performance of lo-cal pathway.   We evaluate our model on the KITTI depthcompletion  dataset.   To  make  comparison,  we  implementtwo models ranking8thand11thon the KITTI depth com-pletion benchmark. Also, we conduct an ablation study andqualitative analysis to demonstrate the effectiveness of pro-posed U-Block and our methods
 
 
 
